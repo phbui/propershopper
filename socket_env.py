@@ -391,6 +391,7 @@ if __name__ == "__main__":
                 data = key.data
                 data.outb = str.encode(json.dumps(json_to_send) + "\n")
             env.render()
-    filename = input("Please enter a filename for saving the action history.\n>>> ")
     sock_agent.close()
-    env.unwrapped.game.write_action_history(filename)
+    if env.unwrapped.game.record_actions:
+        filename = input("Please enter a filename for saving the action history.\n>>> ")
+        env.unwrapped.game.write_action_history(filename)
