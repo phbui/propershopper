@@ -1,5 +1,6 @@
 # Author: Daniel Kasenberg (adapted from Gyan Tatiya's Minecraft socket)
 import argparse
+import datetime
 import json
 import selectors
 import socket
@@ -23,8 +24,9 @@ class SupermarketEventHandler:
         self.running = True
 
     def single_player_action(self, action, arg=0):
-        if self.env.unwrapped.game.record_actions: 
-            self.env.unwrapped.game.action_history.append(str(self.curr_player) + " " + str(action).split(".")[1])
+        if self.env.unwrapped.game.record_actions:
+            self.env.unwrapped.game.action_history.append(
+                str(self.curr_player) + " " + str(action).split(".")[1] + " " + str(datetime.datetime.now().timestamp()))
         return self.curr_player, action, arg
 
     def handle_events(self):
@@ -378,12 +380,17 @@ if __name__ == "__main__":
                         sent = sock.send(data.outb)  # Should be ready to write
                         data.outb = data.outb[sent:]
         if should_perform_action:
+            for index, player in enumerate(curr_action):
+                env.unwrapped.game.action_history.append(
+                    str(index) + " " + ACTION_COMMANDS[player[0]] + " " + 
+                    str(datetime.datetime.now().timestamp())
+                )
             obs, reward, done, info = env.step(tuple(curr_action))
             for key, mask, command in e:
                 json_to_send = get_action_json(command, env, obs, reward, done, info)
                 data = key.data
                 data.outb = str.encode(json.dumps(json_to_send) + "\n")
             env.render()
-    sock_agent.close()
     filename = input("Please enter a filename for saving the action history.\n>>> ")
+    sock_agent.close()
     env.unwrapped.game.write_action_history(filename)
