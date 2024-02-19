@@ -113,6 +113,9 @@ class Game:
         self.record_actions = record_actions
         self.action_history = []
         
+        self.is_playback = False
+        self.game_state_observations = {} # Used to reverse back to a certain state in the game
+        
         if not headless:
             if follow_player == -1:
                 config.SCALE = 32
@@ -884,6 +887,10 @@ class Game:
     def write_action_history(self, filename): 
         with open(filename, "w") as f:
             history = ""
-            for action in self.action_history: 
-                history += action + '\n'
+            for row in self.action_history: 
+                action = []
+                for i, each in enumerate(row.split(" ")):
+                    if i != 2: 
+                        action.append(each)
+                history += " ".join(action) + '\n'
             f.write(history)
