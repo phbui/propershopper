@@ -31,10 +31,14 @@ class SupermarketEventHandler:
         # Record action history
         timestamp = datetime.datetime.now().timestamp()
         self.env.unwrapped.game.action_history.append(
-            str(self.curr_player) + " " + str(action).split(".")[-1] + " " + str(arg) + " " + str(timestamp))
+            (str(self.curr_player), 
+             str(action).split(".")[-1], 
+             str(arg), str(timestamp)))
             
         # Record observation
-        self.env.unwrapped.game.game_state_observations[str(timestamp)] = obs
+        self.env.unwrapped.game.save_state(obs=(str(timestamp), obs))
+    
+        return str(timestamp)
     
     def handle_events(self):
         if self.env.unwrapped.game.players[self.curr_player].interacting:
@@ -43,47 +47,49 @@ class SupermarketEventHandler:
             self.handle_exploratory_events()
         self.env.render(mode='violations')
         
-    def reverse_playback(self):
+    def reverse(self, replay_index=None):
         # 1. get correct timestamp from action history -20
         # 2. use that timestamp to get obs
         # use set_obs(game, obs) to reset obs
-        # 3. replay all actions in the last 20 opeations -- goal does not modify steps or get recoreded twice
+        # 3. replay all actions in the last 50 opeations -- goal does not modify steps or get recoreded twice
+
         history_len = len(self.env.unwrapped.game.action_history)
-        print("history_len: ", history_len)
         
-        replay_index = 0 if history_len < 20 else -20
+        if replay_index == None: 
+            replay_index = 0 if history_len < 50 else history_len - 50
+        else: 
+            replay_index = 0 if replay_index < 0 else replay_index
+
         print("replay_index: ", replay_index)
-        timestamp = self.env.unwrapped.game.action_history[replay_index].split(" ")[-1]
-        print("timestamp: ", timestamp)
+        timestamp = self.env.unwrapped.game.action_history[replay_index][-1]
         obs = self.env.unwrapped.game.game_state_observations[timestamp]
-
-
-        # with open("obs_prior", "w") as f:
-        #     f.write(str(self.env.unwrapped.game.game_state_observations[self.env.unwrapped.game.action_history[10].split(" ")[-1]]))
             
         self.env.unwrapped.game.set_observation(obs)
         env.render()
-        # self.env.unwrapped.game.update()
-        obs = self.env.unwrapped.game.observation(True)
-        
-        # with open("obs", "w") as f:
-        #     from pprint import PrettyPrinter
-        #     pp = PrettyPrinter(stream=f)
-        #     pp.pprint(self.env.unwrapped.game.game_state_observations)
-        
-        # with open("obs_after", "w") as f:
-        #     f.write(str(self.env.unwrapped.game.game_state_observations[self.env.unwrapped.game.action_history[30].split(" ")[-1]]))
-
-        print("history_len: ", history_len)
+        self.env.unwrapped.game.update()
+        # obs = self.env.unwrapped.game.observation(True)
         
         step_count = self.env.unwrapped.step_count # to preserve original step count
         
-        for action_str in self.env.unwrapped.game.action_history[replay_index + 1:]:
-            print("action_str.split(" ")[:-1]: ", action_str.split(" ")[:-1])
-            action_list = action_str.split(" ")[:-1]
-            action_list[0] = int(action_list[0])
-            action_list[1] = ACTION_COMMANDS.index(action_list[1])
-            self.env.step(action_list)
+        if self.env.unwrapped.game.is_playback: 
+            for action_tuple in self.env.unwrapped.game.action_history[replay_index + 1:]:
+                for event in pygame.event.get():
+                    if event.type == pygame.KEYDOWN and event.key == pygame.K_z:
+                        self.reverse(replay_index=replay_index - 50)
+                        return
+                print("action_tuple[:-1]: ", action_tuple[:-1])
+                action_list = list(action_tuple[:-1])
+                action_list[0] = int(action_list[0])
+                action_list[1] = ACTION_COMMANDS.index(action_list[1])
+                self.env.step(action_list)
+                
+                env.render()
+                pygame.time.delay(20)
+                replay_index += 1
+        else: 
+            self.env.unwrapped.game.action_history = self.env.unwrapped.game.action_history[:replay_index + 1]
+            obs_list = self.env.unwrapped.game.game_state_observations.items()
+            self.env.unwrapped.game.game_state_observations = dict(filter(lambda item: (item[0] <= timestamp), obs_list))
             
         self.env.unwrapped.step_count = step_count
         
@@ -98,7 +104,7 @@ class SupermarketEventHandler:
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_z:
                     # TIA NOTES: If we want to implement a revert function in 
                     # keyboard input, we can slightly modify this to accomodate
-                    self.reverse_playback() 
+                    self.reverse() 
 
     def handle_exploratory_events(self):
         player = self.env.unwrapped.game.players[self.curr_player]
@@ -107,13 +113,13 @@ class SupermarketEventHandler:
                 self.env.unwrapped.game.running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_s:
                 filename = input("Please enter a filename for saving the state.\n>>> ")
-                self.env.unwrapped.game.save_state(filename)
+                self.env.unwrapped.game.save_state(filename=filename)
                 print("State saved to {filename}.".format(filename=filename))
             elif self.env.unwrapped.game.is_playback:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
                     self.pause_game()
-                elif event.type == pygame.KEYDOWN and event.key == pygame.K_z:
-                    self.reverse_playback()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_z:
+                    self.reverse()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
                 self.env.unwrapped.game.toggle_record()
             elif self.keyboard_input:
@@ -155,6 +161,7 @@ class SupermarketEventHandler:
             if keys[pygame.K_UP]:  # up
                 obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.NORTH))
                 self.record_action_and_obs(PlayerAction.NORTH, obs)
+                
             elif keys[pygame.K_DOWN]:  # down
                 obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.SOUTH))
                 self.record_action_and_obs(PlayerAction.SOUTH, obs)
@@ -356,7 +363,7 @@ if __name__ == "__main__":
                          record_path=args.record_path,
                          stay_alive=args.stay_alive, 
                          record_actions=args.record_actions
-                         )
+                        )
 
     norms = [CartTheftNorm(),
              BasketTheftNorm(),
@@ -429,13 +436,11 @@ if __name__ == "__main__":
                         if len(recv_data) < 4096:
                             #  We've hit the end of the input stream; now we process the input
                             command = data.inb.decode().strip()
-                            # print("printing command received: ", command)
                             data.inb = b''
                             if command.startswith("SET"):
                                 obs = command[4:]
                                 from json import loads
                                 obs_to_return = env.reset(obs=loads(obs))
-                                print(obs_to_return)
                                 json_to_send = get_action_json("SET", env, obs_to_return, 0., False, None)
                                 data = key.data
                                 data.outb = str.encode(json.dumps(json_to_send) + "\n")
@@ -466,14 +471,7 @@ if __name__ == "__main__":
             obs, reward, done, info = env.step(tuple(curr_action))
             
             for index, player in enumerate(curr_action):
-                print("index: ", index)
-                print("player: ", player)
-                # print("printing ACTION_COMMANDS[player[0]]:", ACTION_COMMANDS[player[0]])
                 handler.record_action_and_obs(ACTION_COMMANDS[player[0]], obs)
-                # env.unwrapped.game.action_history.append(
-                #     str(index) + " " + ACTION_COMMANDS[player[0]] + " " + 
-                #     str(datetime.datetime.now().timestamp())
-                # ) #TIA TODO: RECORD OBSERVATION + UPDATE RECORDING ACTION HISTORY -- DONE
             
             for key, mask, command in e:
                 json_to_send = get_action_json(command, env, obs, reward, done, info)
@@ -485,8 +483,4 @@ if __name__ == "__main__":
         filename = input("Please enter a filename for saving the action history.\n>>> ")
         env.unwrapped.game.write_action_history(filename)
         
-        with open(filename + "_obs", "w") as f:
-            from pprint import PrettyPrinter
-            pp = PrettyPrinter(stream=f)
-            pp.pprint(handler.env.unwrapped.game.game_state_observations)
             
