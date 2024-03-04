@@ -48,10 +48,6 @@ class SupermarketEventHandler:
         self.env.render(mode='violations')
         
     def reverse(self, replay_index=None):
-        # 1. get correct timestamp from action history -20
-        # 2. use that timestamp to get obs
-        # use set_obs(game, obs) to reset obs
-        # 3. replay all actions in the last 50 opeations -- goal does not modify steps or get recoreded twice
 
         history_len = len(self.env.unwrapped.game.action_history)
         
