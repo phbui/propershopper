@@ -444,7 +444,6 @@ if __name__ == "__main__":
                                 json_to_send = get_action_json("SET", env, obs_to_return, 0., False, None)
                                 data = key.data
                                 data.outb = str.encode(json.dumps(json_to_send) + "\n")
-                            # TIA TODO: IN HERE ADD CONDITION TO CHECK IF IT IS A MESSAGE IDENTIFYING PLAYBACK -- DONE
                             if is_playback_mode(command): 
                                 env.unwrapped.game.is_playback = True
                             if is_single_player(command):
