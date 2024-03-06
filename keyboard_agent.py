@@ -43,6 +43,11 @@ if __name__ == "__main__":
 
     pygame.init()
 
+    # Set up a display to accept keyboard command
+    screen_size = (400, 100)
+    screen = pygame.display.set_mode(screen_size)
+    pygame.display.set_caption("Control Display")
+
     running = True
     while running:
         for event in pygame.event.get():
