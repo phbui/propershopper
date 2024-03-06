@@ -2,7 +2,6 @@
 import argparse
 import datetime
 import json
-from pprint import pprint
 import selectors
 import socket
 import types
@@ -15,6 +14,7 @@ import pygame
 
 ACTION_COMMANDS = ['NOP', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'INTERACT', 'TOGGLE_CART', 'CANCEL', 'SELECT']
 
+GAME_COMMANDS = ['ESCAPE', 'SAVE', 'TOGGLE_RECORD', 'PAUSE', 'REVERT']
 
 class SupermarketEventHandler:
     def __init__(self, env, keyboard_input=False):
@@ -98,8 +98,6 @@ class SupermarketEventHandler:
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
                     waiting = False
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_z:
-                    # TIA NOTES: If we want to implement a revert function in 
-                    # keyboard input, we can slightly modify this to accomodate
                     self.reverse() 
 
     def handle_exploratory_events(self):
@@ -229,6 +227,20 @@ def get_action_json(action, env_, obs, reward, done, info_=None):
     # action_json = {"hello": "world"}
     return action_json
 
+def is_game_command(command_):
+    return command_ in GAME_COMMANDS
+
+def get_event(command_): 
+    if command_ == 'ESCAPE':
+        return pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE)
+    elif command_ == 'SAVE':
+        return pygame.event.Event(pygame.KEYDOWN, key=pygame.K_s)
+    elif command_ == 'TOGGLE_RECORD':
+        return pygame.event.Event(pygame.KEYDOWN, key=pygame.K_r)
+    elif command_ == 'PAUSE':
+        return pygame.event.Event(pygame.KEYDOWN, key=pygame.K_p)
+    elif command_ == 'REVERT':
+        return pygame.event.Event(pygame.KEYDOWN, key=pygame.K_z)
 
 def is_single_player(command_):
     return ',' not in command_
@@ -237,7 +249,9 @@ def is_playback_mode(command_):
     return command == "Playback"
 
 def get_player_and_command(command_):
+    print("command_: ", command_)
     split_command = command_.split(' ')
+    print("split_command: ", split_command)
     if len(split_command) == 1:
         return 0, split_command[0], 0
     elif len(split_command) == 2:
@@ -417,7 +431,7 @@ if __name__ == "__main__":
         curr_action = [(0,0)] * env.unwrapped.num_players
         e = []
         if not args.headless:
-            handler.handle_events() # TIA TODO: INJECTION OF KEYBOARD COMMANDS
+            handler.handle_events()
             env.render()
         for key, mask in events:
             if key.data is None:
@@ -442,6 +456,9 @@ if __name__ == "__main__":
                                 data.outb = str.encode(json.dumps(json_to_send) + "\n")
                             if is_playback_mode(command): 
                                 env.unwrapped.game.is_playback = True
+                            if is_game_command(command):
+                                keydown_event = get_event(command)
+                                pygame.event.post(keydown_event)
                             if is_single_player(command):
                                 player, command, arg = get_player_and_command(command)
                                 e.append((key, mask, command))
