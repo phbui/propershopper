@@ -249,9 +249,7 @@ def is_playback_mode(command_):
     return command == "Playback"
 
 def get_player_and_command(command_):
-    print("command_: ", command_)
     split_command = command_.split(' ')
-    print("split_command: ", split_command)
     if len(split_command) == 1:
         return 0, split_command[0], 0
     elif len(split_command) == 2:
