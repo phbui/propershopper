@@ -48,13 +48,26 @@ class NormWrapper(gym.Wrapper):
         violations = set()
         for norm in self.norms:
             violations.update(norm.pre_monitor(self.env.unwrapped.game, self.maybe_convert(action)))
-        obs, reward, done, info = self.env.step(action)
+        # rest has None in it
+        obs, reward, done, info, rest = self.env.step(action)
         for norm in self.norms:
             violations.update(norm.post_monitor(self.env.unwrapped.game, self.maybe_convert(action)))
         self.violations = violations
         new_obs = obs
-        # new_obs = {'violations': violations, 'obs': obs}
-        return new_obs, reward, done, info
+        # MS: this is changed to return violations, which we return as strings for now due to JSON problems
+##        if not violations:
+##            new_obs = {'violations': '', 'obs': obs}
+##        else:
+##            new_obs = {'violations': str(violations), 'obs': obs}
+        if not violations:
+            violations = ''
+        else:
+            temp = []
+            # this needs to be serialized better
+            for violation in violations:
+                temp.append(str(violation))
+            violations = temp
+        return new_obs, reward, done, info, violations
 
     def render(self, mode='human', **kwargs):
         if not mode=='violations':
