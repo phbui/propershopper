@@ -90,7 +90,7 @@ Assuming you put the class in the same directory as you Agent.jar, then you can 
 and you can run using the following (after you first made sure that the socket is running, won’t work without it!)
 
 ```
-	java -cp .:Agent.jar Agent <any other args>
+	java -cp .:Agent.jar Agent Agent <any other args>
 ```
 
 (Use “;” instead of “:” for Windows!)
