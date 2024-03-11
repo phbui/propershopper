@@ -59,11 +59,13 @@ class SupermarketEnv(gym.Env):
                 self.unwrapped.game.cancel_interaction(i)
             elif player_action == PlayerAction.PICKUP:
                 self.unwrapped.game.pickup(i, arg)
+            elif player_action == PlayerAction.RESET:
+                self.reset()
         observation = self.unwrapped.game.observation()
         self.unwrapped.step_count += 1
         if not self.unwrapped.game.running:
             done = True
-        return observation, 0., done, None
+        return observation, 0., done, None, None
 
     def reset(self,seed = None, options = None, obs=None):
         self.unwrapped.game= Game(self.unwrapped.num_players, self.player_speed,
@@ -128,11 +130,13 @@ class SinglePlayerSupermarketEnv(gym.Wrapper):
             self.unwrapped.game.cancel_interaction(i)
         elif player_action == PlayerAction.PICKUP:
             self.unwrapped.game.pickup(i, arg)
+        elif player_action == PlayerAction.RESET:
+            self.reset()
         observation = self.unwrapped.game.observation()
         self.unwrapped.step_count += 1
         if not self.unwrapped.game.running:
             done = True
-        return observation, 0., done, None
+        return observation, 0., done, None, None
 
 
 if __name__ == "__main__":

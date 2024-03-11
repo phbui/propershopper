@@ -12,9 +12,19 @@ from norms.norms import *
 
 import pygame
 
-ACTION_COMMANDS = ['NOP', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'INTERACT', 'TOGGLE_CART', 'CANCEL', 'SELECT']
+ACTION_COMMANDS = ['NOP', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'INTERACT', 'TOGGLE_CART', 'CANCEL', 'SELECT','RESET']
 
 GAME_COMMANDS = ['ESCAPE', 'SAVE', 'TOGGLE_RECORD', 'PAUSE', 'REVERT']
+
+def serialize_data(data):
+    if isinstance(data, set):
+        return list(data)
+    elif isinstance(data, dict):
+        return {k: serialize_data(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [serialize_data(item) for item in data]
+    else:
+        return data
 
 class SupermarketEventHandler:
     def __init__(self, env, keyboard_input=False):
@@ -119,7 +129,7 @@ class SupermarketEventHandler:
             elif self.keyboard_input:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
-                        obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.INTERACT))
+                        obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.INTERACT))
                         self.record_action_and_obs(PlayerAction.INTERACT, obs)
                     # i key shows inventory
                     elif event.key == pygame.K_i:
@@ -133,7 +143,7 @@ class SupermarketEventHandler:
                         player.interacting = True
 
                     elif event.key == pygame.K_c:
-                        obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.TOGGLE))
+                        obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.TOGGLE))
                         self.record_action_and_obs(PlayerAction.TOGGLE, obs)
                     # switch players (up to 9 players)
                     else:
@@ -147,25 +157,25 @@ class SupermarketEventHandler:
 
                 # player stands still if not moving
                 elif event.type == pygame.KEYUP:
-                    obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.NOP))
+                    obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.NOP))
                     self.record_action_and_obs(PlayerAction.NOP, obs)
 
         if self.keyboard_input:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_UP]:  # up
-                obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.NORTH))
+                obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.NORTH))
                 self.record_action_and_obs(PlayerAction.NORTH, obs)
                 
             elif keys[pygame.K_DOWN]:  # down
-                obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.SOUTH))
+                obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.SOUTH))
                 self.record_action_and_obs(PlayerAction.SOUTH, obs)
 
             elif keys[pygame.K_LEFT]:  # left
-                obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.WEST))
+                obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.WEST))
                 self.record_action_and_obs(PlayerAction.WEST, obs)
 
             elif keys[pygame.K_RIGHT]:  # right
-                obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.EAST))
+                obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.EAST))
                 self.record_action_and_obs(PlayerAction.EAST, obs)
 
         self.running = self.env.unwrapped.game.running
@@ -179,12 +189,12 @@ class SupermarketEventHandler:
             if event.type == pygame.KEYDOWN and self.keyboard_input:
                 # b key cancels interaction
                 if event.key == pygame.K_b:
-                    obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.CANCEL))
+                    obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.CANCEL))
                     self.record_action_and_obs(PlayerAction.CANCEL, obs)
 
                 # return key continues interaction
                 elif event.key == pygame.K_RETURN:
-                    obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.INTERACT))
+                    obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.INTERACT))
                     self.record_action_and_obs(PlayerAction.INTERACT, obs)
                 # i key turns off inventory rendering
                 elif event.key == pygame.K_i:
@@ -206,7 +216,7 @@ class SupermarketEventHandler:
         self.running = self.env.unwrapped.game.running
 
 
-def get_action_json(action, env_, obs, reward, done, info_=None):
+def get_action_json(action, env_, obs, reward, done, info_=None, violations=''):
     # cmd, arg = get_command_argument(action)
 
     if not isinstance(info_, dict):
@@ -222,7 +232,8 @@ def get_action_json(action, env_, obs, reward, done, info_=None):
                                       'stepCost': step_cost},
                    'observation': obs,
                    'step': env_.unwrapped.step_count,
-                   'gameOver': done}
+                   'gameOver': done,
+                   'violations': violations}
     # print(action_json)
     # action_json = {"hello": "world"}
     return action_json
@@ -451,7 +462,7 @@ if __name__ == "__main__":
                                 obs_to_return = env.reset(obs=loads(obs))
                                 json_to_send = get_action_json("SET", env, obs_to_return, 0., False, None)
                                 data = key.data
-                                data.outb = str.encode(json.dumps(json_to_send) + "\n")
+                                data.outb = str.encode(json.dumps(json_to_send,default=lambda o: o.__dict__) + "\n")
                             if is_playback_mode(command): 
                                 env.unwrapped.game.is_playback = True
                             if is_game_command(command):
@@ -467,7 +478,7 @@ if __name__ == "__main__":
                                     # print(action)
                                 else:
                                     info = {'result': False, 'step_cost': 0.0, 'message': 'Invalid Command'}
-                                    json_to_send = get_action_json(command, env, None, 0., False, info)
+                                    json_to_send = get_action_json(command, env, None, 0., False, info, None)
                                     data.outb = str.encode(json.dumps(json_to_send) + "\n")
                     else:
                         print('closing connection to', data.addr)
@@ -478,15 +489,20 @@ if __name__ == "__main__":
                         sent = sock.send(data.outb)  # Should be ready to write
                         data.outb = data.outb[sent:]
         if should_perform_action:
-            obs, reward, done, info = env.step(tuple(curr_action))
+            obs, reward, done, info, violations = env.step(tuple(curr_action))
             
             for index, player in enumerate(curr_action):
                 handler.record_action_and_obs(ACTION_COMMANDS[player[0]], obs)
             
             for key, mask, command in e:
-                json_to_send = get_action_json(command, env, obs, reward, done, info)
+                json_to_send = get_action_json(command, env, obs, reward, done, info, violations)
+                
                 data = key.data
-                data.outb = str.encode(json.dumps(json_to_send) + "\n")
+                #data.outb = str.encode(json.dumps(json_to_send) + "\n")
+
+                # Serialize the data to ensure it's JSON-serializable
+                json_to_send_serialized = serialize_data(json_to_send)                
+                data.outb = str.encode(json.dumps(json_to_send_serialized) + "\n")
             env.render()
     sock_agent.close()
     if env.unwrapped.game.record_actions:
