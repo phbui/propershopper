@@ -130,7 +130,7 @@ class SupermarketEventHandler:
             elif self.keyboard_input:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
-                        obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.INTERACT))
+                        obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.INTERACT))
                         self.record_action_and_obs(PlayerAction.INTERACT, obs)
                     # i key shows inventory
                     elif event.key == pygame.K_i:
@@ -144,7 +144,7 @@ class SupermarketEventHandler:
                         player.interacting = True
 
                     elif event.key == pygame.K_c:
-                        obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.TOGGLE))
+                        obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.TOGGLE))
                         self.record_action_and_obs(PlayerAction.TOGGLE, obs)
                     # switch players (up to 9 players)
                     else:
@@ -158,25 +158,25 @@ class SupermarketEventHandler:
 
                 # player stands still if not moving
                 elif event.type == pygame.KEYUP:
-                    obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.NOP))
+                    obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.NOP))
                     self.record_action_and_obs(PlayerAction.NOP, obs)
 
         if self.keyboard_input:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_UP]:  # up
-                obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.NORTH))
+                obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.NORTH))
                 self.record_action_and_obs(PlayerAction.NORTH, obs)
                 
             elif keys[pygame.K_DOWN]:  # down
-                obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.SOUTH))
+                obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.SOUTH))
                 self.record_action_and_obs(PlayerAction.SOUTH, obs)
 
             elif keys[pygame.K_LEFT]:  # left
-                obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.WEST))
+                obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.WEST))
                 self.record_action_and_obs(PlayerAction.WEST, obs)
 
             elif keys[pygame.K_RIGHT]:  # right
-                obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.EAST))
+                obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.EAST))
                 self.record_action_and_obs(PlayerAction.EAST, obs)
 
         self.running = self.env.unwrapped.game.running
@@ -190,12 +190,12 @@ class SupermarketEventHandler:
             if event.type == pygame.KEYDOWN and self.keyboard_input:
                 # b key cancels interaction
                 if event.key == pygame.K_b:
-                    obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.CANCEL))
+                    obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.CANCEL))
                     self.record_action_and_obs(PlayerAction.CANCEL, obs)
 
                 # return key continues interaction
                 elif event.key == pygame.K_RETURN:
-                    obs, _, _, _ = self.env.step(self.single_player_action(PlayerAction.INTERACT))
+                    obs, _, _, _, _ = self.env.step(self.single_player_action(PlayerAction.INTERACT))
                     self.record_action_and_obs(PlayerAction.INTERACT, obs)
                 # i key turns off inventory rendering
                 elif event.key == pygame.K_i:
