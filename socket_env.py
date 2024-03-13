@@ -43,6 +43,9 @@ class SupermarketEventHandler:
             (str(self.curr_player), 
              str(action).split(".")[-1], 
              str(arg), str(timestamp)))
+        # print("appending action: ", (str(self.curr_player), 
+        #      str(action).split(".")[-1], 
+        #      str(arg), str(timestamp)))
             
         # Record observation
         self.env.unwrapped.game.save_state(obs=(str(timestamp), obs))
@@ -60,10 +63,15 @@ class SupermarketEventHandler:
 
         history_len = len(self.env.unwrapped.game.action_history)
         
+        num_steps = int(input("How many commands would you like to reverse/revert? "))
+        if num_steps < 0:
+            print("Error: Cannot reverse by negative number of steps!")
+            exit(1)
+        
         if replay_index == None: 
-            replay_index = 0 if history_len < 50 else history_len - 50
+            replay_index = 0 if history_len < num_steps else history_len - num_steps
         else: 
-            replay_index = 0 if replay_index < 0 else replay_index
+            replay_index = 0 if (replay_index - num_steps) < 0 else replay_index - num_steps
 
         print("replay_index: ", replay_index)
         timestamp = self.env.unwrapped.game.action_history[replay_index][-1]
@@ -80,8 +88,11 @@ class SupermarketEventHandler:
             for action_tuple in self.env.unwrapped.game.action_history[replay_index + 1:]:
                 for event in pygame.event.get():
                     if event.type == pygame.KEYDOWN and event.key == pygame.K_z:
-                        self.reverse(replay_index=replay_index - 50)
+                        self.reverse(replay_index=replay_index)
                         return
+                    elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+                        if (self.pause_game(replay_index)):
+                            return
                 print("action_tuple[:-1]: ", action_tuple[:-1])
                 action_list = list(action_tuple[:-1])
                 action_list[0] = int(action_list[0])
@@ -98,8 +109,15 @@ class SupermarketEventHandler:
             
         self.env.unwrapped.step_count = step_count
         
-    def pause_game(self):
+    ''' 
+    Purpose:    Pauses game until key p is hit again 
+    Note:       Could be given a starting point of which index in history to 
+                start reverse from if user requests for a reverse or revert in 
+                this function
+    '''
+    def pause_game(self, reverse_index=None):
         waiting = True
+        replayed_history = False
         while waiting: 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
@@ -107,9 +125,13 @@ class SupermarketEventHandler:
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
                     waiting = False
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_z:
-                    # TIA NOTES: If we want to implement a revert function in 
-                    # keyboard input, we can slightly modify this to accomodate
-                    self.reverse() 
+                    # need to start reverse from potentially middle of the game history
+                    if reverse_index:
+                        self.reverse(reverse_index) 
+                        replayed_history = True
+                    else: 
+                        self.reverse()
+        return replayed_history
 
     def handle_exploratory_events(self):
         player = self.env.unwrapped.game.players[self.curr_player]
@@ -120,11 +142,11 @@ class SupermarketEventHandler:
                 filename = input("Please enter a filename for saving the state.\n>>> ")
                 self.env.unwrapped.game.save_state(filename=filename)
                 print("State saved to {filename}.".format(filename=filename))
-            elif self.env.unwrapped.game.is_playback:
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
                     self.pause_game()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_z:
-                    self.reverse()
+                print("z pressed without pause")
+                self.reverse()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
                 self.env.unwrapped.game.toggle_record()
             elif self.keyboard_input:
@@ -473,10 +495,14 @@ if __name__ == "__main__":
                         sent = sock.send(data.outb)  # Should be ready to write
                         data.outb = data.outb[sent:]
         if should_perform_action:
+            handler.curr_player = player
+            handler.env.curr_player = player
+            handler.env.unwrapped.game.curr_player = player
+
             obs, reward, done, info, violations = env.step(tuple(curr_action))
             
-            for index, player in enumerate(curr_action):
-                handler.record_action_and_obs(ACTION_COMMANDS[player[0]], obs)
+            for index, player_action in enumerate(curr_action):
+                handler.record_action_and_obs(ACTION_COMMANDS[player_action[0]], obs)
             
             for key, mask, command in e:
                 json_to_send = get_action_json(command, env, obs, reward, done, info, violations)
