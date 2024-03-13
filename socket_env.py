@@ -117,7 +117,6 @@ class SupermarketEventHandler:
     '''
     def pause_game(self, reverse_index=None):
         waiting = True
-        replayed_history = False
         while waiting: 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
@@ -128,10 +127,11 @@ class SupermarketEventHandler:
                     # need to start reverse from potentially middle of the game history
                     if reverse_index:
                         self.reverse(reverse_index) 
-                        replayed_history = True
+                        return True
                     else: 
                         self.reverse()
-        return replayed_history
+                        return False
+        return False
 
     def handle_exploratory_events(self):
         player = self.env.unwrapped.game.players[self.curr_player]
