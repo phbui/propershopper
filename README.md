@@ -59,7 +59,7 @@ You can then run it (assuming the simulation is already running in another termi
 ```
 python socket_agent.py
 ```
-### Running the simulation with record action history
+### Running the simulation with recorded action history
 
 Take a look at the "replay_agent_actions.py" file which has an example of how to send recorded commands from a file through a socket.  The format for sending actions is "<agentnumber> <actioncommand>"
 
