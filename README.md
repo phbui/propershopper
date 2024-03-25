@@ -161,7 +161,7 @@ Below is a table of the gym ids of the actions available in this environment (le
 | N/A    | View inventory     | 'i'          |
 | N/A    | View shopping list | 'l'          |
 | N/A    | Pause              | 'p'          |
-| N/A    | reverse/revert     | 'z'          |
+| N/A    | Reverse/Revert     | 'z'          |
 
 Actions are formatted as tuples. In the pick-up action an agent can specify an index that corresponds with a food item.
 
