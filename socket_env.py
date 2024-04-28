@@ -11,6 +11,9 @@ from norms.norms import *
 
 import pygame
 
+action_file = "actions.txt"
+agent_completion_file = "agent_completion.txt"
+
 ACTION_COMMANDS = ['NOP', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'INTERACT', 'TOGGLE_CART', 'CANCEL', 'SELECT','RESET']
 
 def serialize_data(data):
@@ -30,6 +33,7 @@ class SupermarketEventHandler:
         env.reset()
         self.curr_player = env.unwrapped.game.curr_player
         self.running = True
+     
 
     def single_player_action(self, action, arg=0):
         return self.curr_player, action, arg
@@ -195,6 +199,13 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        '--mode',
+        type=int,
+        help="location of the initial state to read in",
+        default=0
+    )
+
+    parser.add_argument(
         '--port',
         type=int,
         help="Which port to bind",
@@ -276,7 +287,8 @@ if __name__ == "__main__":
                          render_number=args.render_number,
                          player_sprites=args.player_sprites,
                          record_path=args.record_path,
-                         stay_alive=args.stay_alive
+                         stay_alive=args.stay_alive,
+                         mode=args.mode
                          )
 
     norms = [CartTheftNorm(),
@@ -313,7 +325,7 @@ if __name__ == "__main__":
     # env.map_size = 32
 
     sel = selectors.DefaultSelector()
-
+    action_taken = [[] for _ in range(env.unwrapped.num_players)]
     # Connect to agent
     HOST = '127.0.0.1'
     PORT = args.port
@@ -328,6 +340,7 @@ if __name__ == "__main__":
     env.reset()
     env.render()
     done = False
+    print(env.unwrapped.game.baskets)
 
     while env.unwrapped.game.running:
         events = sel.select(timeout=0)
@@ -366,7 +379,21 @@ if __name__ == "__main__":
                                     action_id = ACTION_COMMANDS.index(command)
                                     curr_action[player] = (action_id, arg)
                                     should_perform_action = True
-                                    # print(action)
+                                    action_taken[player].append(action_id)
+                                    with open(action_file, 'w') as f:
+                                        max_a = 0
+                                        id = -1
+                                        for i in range(env.unwrapped.num_players):
+                                            f.write("player " + str(i) + " has taken: " + str(len(action_taken[i])) + " actions\n")
+                                            if len(action_taken[i]) > max_a:
+                                                max_a = len(action_taken[i])
+                                                id = i
+                                        f.write("Player " + str(id) + " has taken the least actions")
+                                        # for i in range(env.unwrapped.num_players):
+                                        #     f.write("actions taken by player " + str(i) + ": \n")
+                                        #     for action in action_taken[i]:
+                                        #         f.write(ACTION_COMMANDS[action] + "\n")
+                                        f.close()
                                 else:
                                     info = {'result': False, 'step_cost': 0.0, 'message': 'Invalid Command'}
                                     json_to_send = get_action_json(command, env, None, 0., False, info, None)
@@ -391,4 +418,16 @@ if __name__ == "__main__":
                 json_to_send_serialized = serialize_data(json_to_send)                
                 data.outb = str.encode(json.dumps(json_to_send_serialized) + "\n")
             env.render()
+        with open(agent_completion_file, 'w') as f:
+            #indicate the winner with the maximum completion_rate
+            max_c = 0
+            id = -1
+
+            for i in range(env.unwrapped.num_players):
+                completion = env.unwrapped.game.players[i].completion_rate(env.unwrapped.game.carts, env.unwrapped.game.baskets)
+                if completion > max_c:
+                    max_c = completion
+                    id = i  
+                f.write("player " + str(i) + " has complete: " + str(completion*100) + " percent of the task\n")
+            f.write("The winner is: player " + str(id) )
     sock_agent.close()

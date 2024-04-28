@@ -11,11 +11,12 @@ class SupermarketEnv(gym.Env):
 
     def __init__(self, num_players=1, player_speed=0.15, keyboard_input=False, render_messages=True, bagging=False,
                  headless=False, initial_state_filename=None, follow_player=-1, random_start=False,
-                 render_number=False, max_num_items=33, player_sprites=None, record_path=None, stay_alive=False):
+                 render_number=False, max_num_items=33, player_sprites=None, record_path=None, stay_alive=False, mode=0):
 
         super(SupermarketEnv, self).__init__()
 
         self.unwrapped.step_count = 0
+        self.mode = mode
         self.render_messages = render_messages
         self.keyboard_input = keyboard_input
         self.render_number = render_number
@@ -66,7 +67,7 @@ class SupermarketEnv(gym.Env):
             done = True
         return observation, 0., done, None, None
 
-    def reset(self,seed = None, options = None, obs=None):
+    def reset(self,seed = None, options = None, obs=None, mode = 0):
         self.unwrapped.game= Game(self.unwrapped.num_players, self.player_speed,
                          keyboard_input=self.keyboard_input,
                          render_messages=self.render_messages,
@@ -77,7 +78,7 @@ class SupermarketEnv(gym.Env):
                          sprite_paths=self.player_sprites,
                          record_path=self.record_path,
                          stay_alive=self.stay_alive)
-        self.unwrapped.game.set_up()
+        self.unwrapped.game.set_up(mode=self.mode)
         if obs is not None:
             self.unwrapped.game.set_observation(obs)
         ########################

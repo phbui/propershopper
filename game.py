@@ -108,10 +108,11 @@ class Game:
 
     def __init__(self, num_players=1, player_speed=0.07, keyboard_input=False, render_messages=False, bagging=False,
                  headless=False, initial_state_filename=None, follow_player=-1, random_start=False,
-                 render_number=False, sprite_paths=None, record_path=None, stay_alive=False):
+                 render_number=False, sprite_paths=None, record_path=None, stay_alive=False, mode = 0):
 
         self.screen = None
         self.clock = None
+        self.mode = mode
 
         if not headless:
             if follow_player == -1:
@@ -177,6 +178,29 @@ class Game:
         if initial_state_filename is not None:
             self.load_from_file(initial_state_filename)
             self.loaded = True
+
+
+# all food: apples, oranges, banana, strawberry, raspberry, milk, chocolate milk, strawberry milk, sausage, steak,
+#  chicken, ham, brie cheese, swiss cheese, cheese wheel, garlic, leek, red bell pepper, carrot, lettuce, avocado,
+# broccoli, cucumber, yellow bell pepper, onion, prepared foods, fresh fish
+    
+        self.preset_shopping_list = [
+            [['milk'],
+            ['fresh fish']],
+            [
+            ['apples', 'swiss cheese', 'raspberry', 'avocado'],
+            ['apple', 'milk', 'fresh fish', 'brie cheese','prepared foods']
+            ],
+        [   ['apples', 'oranges', 'cheese wheel', 'leek', 'red bell pepper', 'avocado', 'raspberry'],
+            ['apples', 'milk', 'fresh fish', 'brie cheese', 'prepared foods', 'avocado', 'raspberry']
+            ]
+        ]
+        self.preset_quantities = [
+            [[1], [2]],
+            [[1, 1, 1, 1, 1], [1, 2, 1, 2, 1]],
+            [[1, 1, 1, 1, 1, 1, 1], [1, 2, 1, 2, 1, 3, 1]]
+        ]
+                                     
 
     def set_observation(self, obs):
         self.players = []
@@ -297,7 +321,7 @@ class Game:
             obs = literal_eval(contents)
             self.set_observation(obs)
 
-    def set_up(self):
+    def set_up(self, mode = 1):
 
         self.running = True
 
@@ -319,7 +343,16 @@ class Game:
                 player = Player(i + 1.2, 15.6, Direction.EAST, i, self.render_number, sprite_path)
                 if self.random_start:
                     self.randomize_position(player)
-                player.set_shopping_list(self.food_list)
+                    
+                if mode != 0 and self.num_players == 2:
+                    print("**********************setting shopping list******************************")
+                    print(self.preset_shopping_list[mode][i], self.preset_quantities[mode][i])
+                    print("**********************setting shopping list******************************")
+                    player.pre_set_shopping_list(self.preset_shopping_list[mode][i], self.preset_quantities[mode][i])
+                elif mode!=0 and self.num_players > 2:
+                    player.pre_set_shopping_list(self.preset_shopping_list[mode][2], self.preset_quantities[mode][2])
+                else:
+                    player.set_shopping_list(self.food_list)
                 self.players.append(player)  # randomly generates 12 item shopping list from list of food in store
 
     def randomize_position(self, player):
