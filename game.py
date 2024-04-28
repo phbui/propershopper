@@ -1,4 +1,3 @@
-from pprint import pprint
 from random import uniform, choice
 
 import pygame
@@ -760,7 +759,6 @@ class Game:
         # create player visibility range shape with origin point
         current_player = self.players[self.curr_player]
         radius = 3.0
-        circle = Point(current_player.position).buffer(radius)
         
         if current_player.direction == Direction.EAST: 
             a = LineString([current_player.position, (current_player.position[0] + radius, current_player.position[1] - radius)])
@@ -777,9 +775,6 @@ class Game:
             
         multi_line = MultiLineString([a, b])
         line_poly = multi_line.convex_hull
-
-        # Intersect the two lines with the circle
-        # player_vision = circle.intersection(line_poly)
         player_vision = Polygon(line_poly)
         
         for i, player in enumerate(self.players):
@@ -891,7 +886,6 @@ class Game:
 
         # prices are part of shelf observation now
         # obs["food_prices"] = dict(self.food_directory)
-        pprint(obs)
         return obs
 
     def get_player_index(self, player):
