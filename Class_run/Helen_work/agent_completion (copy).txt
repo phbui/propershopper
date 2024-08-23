@@ -1,0 +1,3 @@
+player 0 has complete: 0.0 percent of the task
+player 1 has complete: 0.0 percent of the task
+The winner is: player -1

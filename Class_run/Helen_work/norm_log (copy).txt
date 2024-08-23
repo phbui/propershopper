@@ -1,0 +1,2 @@
+Player 0 has 1 violations: 
+['Player 0 took a cart when they have less than 6 items on their shopping list']

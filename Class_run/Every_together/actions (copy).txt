@@ -1,0 +1,3 @@
+player 0 has taken: 43 actions
+player 1 has taken: 60 actions
+Player 1 has taken the least actions
