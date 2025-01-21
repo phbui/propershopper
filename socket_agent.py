@@ -106,7 +106,10 @@ class Agent:
     def check_carts():
         print()
 
-    def get_carts():
+    def get_cart():
+        print()
+
+    def load_cart():
         print()
 
     def check_inventory():
@@ -115,7 +118,16 @@ class Agent:
     def retrieve_item():
         print()
 
+    def find_item():
+        print()
+
+    def check_out():
+        print
+
     def check_quest_requirements():
+        print()
+
+    def check_hand():  
         print()
     
     def complete_quest(self, quest):
