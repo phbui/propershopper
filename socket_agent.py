@@ -8,6 +8,60 @@ import socket
 from env import SupermarketEnv
 from utils import recv_socket_data
 
+class Quest:
+    def __init__(self, name):
+        self.name = name
+        self.requirements = []
+        print(f"Created [Quest: {self.name}].")
+
+    def __init__(self, name, requirements):
+        self.name = name
+        self.requirements = requirements
+        print(f"Created [Quest: {self.name}].")
+
+    def set_requirements(self, requirements):
+        self.requirements = requirements
+
+    def add_requirements(self, key, quantity):
+        if key in self.requirements:
+            print(f"[Quest: {self.name}] Requirement '{key}' already exists with quantity {self.requirements[key]}.")
+        else:
+            self.requirements[key] = quantity
+            print(f"[Quest: {self.name}] Added requirement '{key}' with quantity {quantity}.")
+            
+    def modify_requirements(self, key, quantity):
+        if key in self.requirements:
+            self.requirements[key] = quantity
+            print(f"[Quest: {self.name}] Modified requirement '{key}' to new quantity {quantity}.")
+        else:
+            print(f"[Quest: {self.name}] Requirement '{key}' does not exist.")
+
+    def remove_requirements(self, key):
+        if key in self.requirements:
+            del self.requirements[key]
+            print(f"[Quest: {self.name}] Removed requirement '{key}'.")
+        else:
+            print(f"[Quest: {self.name}] Requirement '{key}' does not exist.")
+
+
+class Agent:
+    def __init__(self, socket, curr_player):
+        self.socket = socket
+        self.curr_player = curr_player
+
+    def send_action(self, action):
+        action = str(self.curr_player) + " " + action
+        print("Sending action: ", action)
+        sock_game.send(str.encode(action))  # send action to env
+
+        output = recv_socket_data(sock_game)  # get observation from env
+        self.output = json.loads(output)
+        return self.output
+    
+    def complete_quest(self, quest):
+        print()
+    
+
 
 if __name__ == "__main__":
 
@@ -25,18 +79,9 @@ if __name__ == "__main__":
     sock_game = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock_game.connect((HOST, PORT))
 
-    while True:
-        # action = str(random.randint(0, 1))
-        # action += " " + random.choice(action_commands)  # random action
+    agent = Agent(socket, 0)
 
-        # assume this is the only agent in the game
-        action = "0 " + "SOUTH"
+    quest = Quest("HW0", [{"ANY": 2}])
 
-        print("Sending action: ", action)
-        sock_game.send(str.encode(action))  # send action to env
-
-        output = recv_socket_data(sock_game)  # get observation from env
-        output = json.loads(output)
-
-        print("Observations: ", output["observation"])
-        print("Violations", output["violations"])
+    agent.send_action("NOP")
+    agent.complete_quest(quest)
