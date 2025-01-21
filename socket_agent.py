@@ -8,6 +8,12 @@ import socket
 from env import SupermarketEnv
 from utils import recv_socket_data
 
+def navigate_json(json_obj, keys):
+    current = json_obj
+    for key in keys:
+        current = current[key]
+    return current
+
 class Quest:
     def __init__(self, name):
         self.name = name
@@ -55,8 +61,62 @@ class Agent:
         sock_game.send(str.encode(action))  # send action to env
 
         output = recv_socket_data(sock_game)  # get observation from env
-        self.output = json.loads(output)
-        return self.output
+        self.current_state = json.loads(output)
+        return self.current_state
+
+    def turn_to(self, target):
+        # target is in the form of an array of keys in json
+        player_direction = self.current_state["direction"]
+        target_direction = navigate_json(self.current_state, [target])["direction"]
+
+        if (player_direction != target_direction):
+            print()
+
+    def move_to(self, target):
+        # target is in the form of an array of keys in json
+
+        player_position = self.current_state["position"]
+        target_position = navigate_json(self.current_state, [target])["position"]
+
+        while player_position != target_position:
+            delta_x = target_position[0] - player_position[0]
+            delta_y = target_position[1] - player_position[1]
+
+            # Determine the next action
+            if abs(delta_x) > abs(delta_y):  # Move horizontally
+                if delta_x > 0:
+                    action = "EAST"
+                else:
+                    action = "WEST"
+            else:  # Move vertically
+                if delta_y > 0:
+                    action = "NORTH"
+                else:
+                    action = "SOUTH"
+
+            # Send the action to the environment
+            print(f"Moving from {player_position} towards {target_position} using action {action}")
+            self.current_state = self.send_action(action)
+
+            # Update the player's current position
+            player_position = self.current_state["position"]
+
+        print(f"Arrived at target position: {target_position}")
+
+    def check_carts():
+        print()
+
+    def get_carts():
+        print()
+
+    def check_inventory():
+        print()
+
+    def retrieve_item():
+        print()
+
+    def check_quest_requirements():
+        print()
     
     def complete_quest(self, quest):
         print()
@@ -81,7 +141,7 @@ if __name__ == "__main__":
 
     agent = Agent(socket, 0)
 
-    quest = Quest("HW0", [{"ANY": 2}])
+    quest = Quest("HW0", [{"any": 2}])
 
     agent.send_action("NOP")
     agent.complete_quest(quest)
