@@ -217,5 +217,6 @@ class Agent:
 
 
     def run(self):
-        while self.state_machine.state != "Leave":
+        while self.state_machine.state != "Done":
             self.state_machine.handle_state()
+

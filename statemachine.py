@@ -86,3 +86,4 @@ class StateMachine:
         logging.info("Handling 'Leave' state.")
         if self.agent.move_to("exit", self.agent.get_exit_position()):
             logging.info("Agent successfully reached the exit and left the store.")
+            self.sub_state = "Done"
