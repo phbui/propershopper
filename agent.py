@@ -101,7 +101,12 @@ class Agent:
             return self.get_self()["shopping_list"]
 
     def basket_return_position(self):
-        return self.curr_state["basketReturns"][0]["position"]
+        entity = self.curr_state["basketReturns"][0]
+        x, y = entity["position"]
+        x = x + entity["width"] / 2
+        y = y - entity["height"]
+
+        return x, y
 
     def get_item_location(self, item):
         for entity_type in ["shelves", "counters"]:
@@ -144,7 +149,7 @@ class Agent:
         for direction in directions:
             self.send_action(direction)
 
-            astar.print_grid(player_position, target_position, tuple(self.get_self()["position"]), path)
+            # astar.print_grid(player_position, target_position, tuple(self.get_self()["position"]), path)
 
             if self.check_reached_location(target):
                 return True

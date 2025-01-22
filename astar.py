@@ -73,7 +73,7 @@ class AStar:
         # (including diagonals).
         if not self.is_goal_or_adjacent(gx, gy) and not self.is_start_or_adjacent(gx,gy):
             neighbors_check = []
-            for dx in range(-1, 2):   # -1, 0, 1
+            for dx in range(-2, 3):
                 for dy in range(-2, 3):  # -2, -1, 0, 1, 2
                     # Skip the cell itself
                     if dx == 0 and dy == 0:
@@ -96,7 +96,7 @@ class AStar:
         Return True if (gx, gy) is the goal cell or one of its 8 adjacent cells.
         """
         Gx, Gy = self.goal_cell
-        for dx in [-1, 0, 1]:
+        for dx in [-2, -1, 0, 1, 2]:
             for dy in [-2, -1, 0, 1, 2]:
                 if (gx, gy) == (Gx + dx, Gy + dy):
                     return True
@@ -107,7 +107,7 @@ class AStar:
         Return True if (gx, gy) is the goal cell or one of its 8 adjacent cells.
         """
         Gx, Gy = self.start_cell
-        for dx in [-1, 0, 1]:
+        for dx in [-2, -1, 0, 1, 2]:
             for dy in [-2, -1, 0, 1, 2]:
                 if (gx, gy) == (Gx + dx, Gy + dy):
                     return True
