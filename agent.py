@@ -13,7 +13,7 @@ direction_map = {0: "NORTH", 1: "SOUTH", 2: "EAST", 3: "WEST"}
 
 import math
 
-def path_to_directions(path, step_size=0.15):
+def path_to_directions(path, step_size=0.3):
     directions = []
 
     for i in range(len(path) - 1):
@@ -69,6 +69,8 @@ class Agent:
         if output_json["violations"]:
             self.last_violation = output_json["violations"][0]
             logging.warning(f"Violation: {self.last_violation}")
+        else:
+            self.last_violation = ""
         return self.curr_state
     
     def correct_direction(self, target):

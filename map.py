@@ -5,7 +5,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class Map:
-    def __init__(self, data, grid_size=0.5, player_size=(0.5, 0.5)):
+    def __init__(self, data, grid_size=0.3, player_size=(0.6, 0.4)):
         self.grid_size = grid_size
         self.data = data
         self.player_width, self.player_height = player_size
@@ -16,7 +16,7 @@ class Map:
 
     def construct_map(self):
         all_positions = []
-        for entity_type in ["players", "registers", "shelves", "cartReturns", "basketReturns", "counters", "carts", "baskets"]:
+        for entity_type in ["registers", "shelves", "cartReturns", "basketReturns", "counters", "carts", "baskets"]:
             for entity in self.data.get(entity_type, []):
                 x, y = entity["position"]
                 w, h = entity["width"], entity["height"]
@@ -73,10 +73,10 @@ class Map:
                 mark_obstacle(grid, position, width, height, value, name=entity_type)
 
         # Mark players explicitly with value 4
-        for player in data.get("players", []):
-            player_position = player["position"]
-            player_width, player_height = self.player_width, self.player_height
-            mark_obstacle(grid, player_position, player_width, player_height, value=4, name="player")
+        #for player in data.get("players", []):
+        #    player_position = player["position"]
+        #    player_width, player_height = self.player_width, self.player_height
+        #   mark_obstacle(grid, player_position, player_width, player_height, value=4, name="player")
 
         logging.debug("Grid updated with new data.")
 

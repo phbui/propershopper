@@ -64,7 +64,7 @@ class AStar:
 
         if gx < 0 or gx >= self.cols or gy < 0 or gy >= self.rows:
             return False
-
+        
         return (self.grid[gy][gx] == 0)
 
     # --------------------------------------------------------------------------
@@ -78,22 +78,20 @@ class AStar:
         ax, ay = cell_a
         bx, by = cell_b
         return math.sqrt((ax - bx) ** 2 + (ay - by) ** 2)
-
+    
     def run_astar(self, start_cell, goal_cell):
         """
         Standard A* from start_cell to goal_cell (both in grid coords).
         Returns a list of continuous (x, y) points if successful, or None.
+        Includes debugging print statements for clarity.
         """
-        # Quick check: if start or goal is invalid, bail
-        if not self.is_free_cell(*start_cell):
-            return None
-        
+        print(f"Starting A* from {start_cell} to {goal_cell}")
+
         open_set = []
         came_from = {}
         g_cost = {start_cell: 0.0}
 
         start_heur = self.heuristic(start_cell, goal_cell)
-        # We'll store (f, g, cell)
         heapq.heappush(open_set, (start_heur, 0.0, start_cell))
         came_from[start_cell] = None
 
@@ -101,26 +99,35 @@ class AStar:
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
 
         while open_set:
+            # print(f"\nOpen set: {open_set}")
             f, current_g, current_cell = heapq.heappop(open_set)
+            # print(f"Expanding cell {current_cell} with f={f}, g={current_g}")
 
             if current_cell == goal_cell:
-                # Reconstruct the path, convert to (x, y)
-                return self.reconstruct_path(came_from, current_cell)
+                # print("\nGoal reached! Reconstructing path...")
+                path = self.reconstruct_path(came_from, current_cell)
+                # print(f"Reconstructed path: {path}")
+                return path
 
             # Explore neighbors
             for dx, dy in directions:
                 nx = current_cell[0] + dx
                 ny = current_cell[1] + dy
+                neighbor = (nx, ny)
 
                 if self.is_free_cell(nx, ny):
                     tentative_g = current_g + 1.0  # cost 1 per cell
-                    if (nx, ny) not in g_cost or tentative_g < g_cost[(nx, ny)]:
-                        g_cost[(nx, ny)] = tentative_g
-                        f_cost = tentative_g + self.heuristic((nx, ny), goal_cell)
-                        came_from[(nx, ny)] = current_cell
-                        heapq.heappush(open_set, (f_cost, tentative_g, (nx, ny)))
+                    # print(f"  Neighbor {neighbor} is free with tentative_g={tentative_g}")
+                    if neighbor not in g_cost or tentative_g < g_cost[neighbor]:
+                        g_cost[neighbor] = tentative_g
+                        f_cost = tentative_g + self.heuristic(neighbor, goal_cell)
+                        came_from[neighbor] = current_cell
+                        heapq.heappush(open_set, (f_cost, tentative_g, neighbor))
+                        # print(f"    Added {neighbor} to open set with f={f_cost}, g={tentative_g}")
+                # else:
+                    # print(f"  Neighbor {neighbor} is blocked or out of bounds.")
 
-        # No path
+        print("\nNo path found!")
         return None
 
     def reconstruct_path(self, came_from, current_cell):
@@ -200,28 +207,19 @@ class AStar:
         2) If no path, find a vertical fallback cell near the goal.
         3) Run A* to the fallback. Return that path or None if fails.
         """
-        # 1) Direct path to the goal
-        direct_path = self.run_astar(self.start_cell, self.goal_cell)
-        if direct_path is not None:
-            print(direct_path)
-            return direct_path
+        goal = self.goal_cell
         
-        # print(f"Grid type: {type(self.grid)}")
-        # print(f"Grid contents:\n{self.grid}")
-        # self.print_grid()
-
-        # 2) Attempt fallback
-        fallback_cell = self.find_closest_open_space_vertical(
-            start_cell=self.start_cell,
-            goal_cell=self.goal_cell,
-            max_search_distance=10  # number of grid cells to look up/down
-        )
-        if fallback_cell is None:
+        if not self.is_free_cell(goal[0], goal[1]):
+            goal = self.find_closest_open_space_vertical(
+                start_cell=self.start_cell,
+                goal_cell=self.goal_cell,
+                max_search_distance=10  # number of grid cells to look up/down
+            )
+        if goal is None:
             return None  # no fallback found
 
-        fallback_path = self.run_astar(self.start_cell, fallback_cell)
-        print(fallback_path)
-        return fallback_path
+        path = self.run_astar(self.start_cell, goal)
+        return path
 
     def print_grid(self, start=None, goal=None):
         """

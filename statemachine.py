@@ -72,7 +72,6 @@ class StateMachine:
                 if self.agent.item_in_hand(current_item) or self.agent.item_in_cart(current_item) or self.agent.item_in_basket(current_item):
                     logging.info(f"Successfully picked up item: {current_item}")
                     self.shopping_index += 1
-                    logging.info(f"Moving to next item in shopping list: {shopping_list[self.shopping_index]}")
                     if self.shopping_index >= len(shopping_list):
                         logging.info("Completed shopping list. Transitioning to 'Leave'.")
                         self.state = "Leave"
