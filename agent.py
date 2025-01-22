@@ -11,30 +11,39 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 direction_map = {0: "NORTH", 1: "SOUTH", 2: "EAST", 3: "WEST"}
 
-def path_to_directions(path):
+import math
+
+def path_to_directions(path, step_size=0.15):
     directions = []
+
     for i in range(len(path) - 1):
         current = path[i]
         next_point = path[i + 1]
-        delta_x = next_point[0] - current[0]
-        delta_y = next_point[1] - current[1]
+        dx = next_point[0] - current[0]
+        dy = next_point[1] - current[1]
 
-        if abs(delta_x) > abs(delta_y):  # Horizontal movement
-            move = "EAST" if delta_x > 0.25 else "WEST"
-        else:  # Vertical movement
-            move = "NORTH" if delta_y < 0.25 else "SOUTH"
-
-        # Avoid immediate cancel-out moves
-        if directions and ((move == "NORTH" and directions[-1] == "SOUTH") or
-                           (move == "SOUTH" and directions[-1] == "NORTH") or
-                           (move == "EAST" and directions[-1] == "WEST") or
-                           (move == "WEST" and directions[-1] == "EAST")):
-            directions.pop()  # Remove the last move as it cancels out
+        # Determine whether we move horizontally or vertically
+        # (assuming no diagonal steps).
+        if abs(dx) > abs(dy):
+            # Horizontal movement
+            distance = abs(dx)
+            move_dir = "EAST" if dx > 0 else "WEST"
         else:
-            directions.append(move)
+            # Vertical movement
+            distance = abs(dy)
+            move_dir = "NORTH" if dy < 0 else "SOUTH"
+
+        # Number of 0.15-unit steps needed
+        steps_needed = int(math.ceil(distance / step_size))
+
+        if directions and (move_dir != directions[-1]):
+            directions.append(move_dir)  # "turn" in the new direction
+
+        # Add the actual steps
+        for _ in range(steps_needed):
+            directions.append(move_dir)
+
     return directions
-
-
 
 class Agent:
     def __init__(self, sock_game, curr_player, shopping_list=None):
@@ -128,9 +137,11 @@ class Agent:
 
         if self.check_reached_location(target):
             return True
+    
 
         for direction in directions:
             self.send_action(direction)
+
             if self.check_reached_location(target):
                 return True
             if self.check_collision():
