@@ -220,26 +220,54 @@ class AStar:
         path = self.run_astar(self.start_cell, goal)
         return path
 
-    def print_grid(self, start=None, goal=None):
+    def print_grid(self, start=None, goal=None, player=None, path=None):
         """
-        Prints the grid with optional start and goal positions.
-        Obstacles are shown as '#', free spaces as '.', start as 'S', and goal as 'G'.
-
-        :param grid: 2D numpy array representing the map.
-        :param start: (gx, gy) tuple of the start cell in grid coordinates.
-        :param goal: (gx, gy) tuple of the goal cell in grid coordinates.
+        Prints the grid with optional start, goal, player, and path positions.
+        Obstacles are shown as '#', free spaces as '.'.
+        
+        The rendering uses ANSI color codes for clarity:
+        - S: Start (blue)
+        - G: Goal (red)
+        - P: Player (yellow)
+        - *: Path (green)
+        - .: Free space (white)
+        - #: Obstacle (white on black bg)
+        
+        :param start:   (gx, gy) tuple of the start cell in grid coordinates.
+        :param goal:    (gx, gy) tuple of the goal cell in grid coordinates.
+        :param player:  (gx, gy) tuple of the player's cell in grid coordinates.
+        :param path:    A list or set of (gx, gy) tuples representing a path in grid coords.
         """
+        
+        # Convert path to a set for O(1) membership checks
+        path_set = set(self.to_grid(point) for point in path) if path else set()
+        
         rows, cols = self.grid.shape  # Get dimensions from the grid's shape
 
         for y in range(rows):
             row_output = []
-            for x in range(self.grid.shape[1]):
-                if start == (x, y):
-                    row_output.append("S")  # Start
-                elif goal == (x, y):
-                    row_output.append("G")  # Goal
-                elif self.grid[y, x] == 0:
-                    row_output.append(".")  # Free space
+            for x in range(cols):
+                cell = (x, y)
+                
+                # Priority: Start/Goal > Player > Path > Obstacle/Free
+                if cell == self.to_grid(start):
+                    # Blue S
+                    row_output.append("\033[94mS\033[0m")
+                elif cell == self.to_grid(goal):
+                    # Red G
+                    row_output.append("\033[91mG\033[0m")
+                elif cell == self.to_grid(player):
+                    # Yellow P
+                    row_output.append("\033[93mP\033[0m")
+                elif cell in path_set:
+                    # Green *
+                    row_output.append("\033[92m*\033[0m")
                 else:
-                    row_output.append("#")  # Obstacle
+                    # Obstacle or free space
+                    if self.grid[y, x] == 0:
+                        # White .
+                        row_output.append("\033[97m.\033[0m")
+                    else:
+                        # White # on black background
+                        row_output.append("\033[40m#\033[0m")
             print("".join(row_output))

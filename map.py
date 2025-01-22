@@ -5,7 +5,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class Map:
-    def __init__(self, data, grid_size=0.3, player_size=(0.6, 0.4)):
+    def __init__(self, data, grid_size=0.15, player_size=(0.6, 0.4)):
         self.grid_size = grid_size
         self.data = data
         self.player_width, self.player_height = player_size
