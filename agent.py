@@ -135,7 +135,7 @@ class Agent:
             return False
 
         directions = path_to_directions(path)
-        logging.info(f"Movement directions: {directions}")
+        # logging.info(f"Movement directions: {directions}")
 
         if self.check_reached_location(target):
             return True
@@ -143,6 +143,8 @@ class Agent:
 
         for direction in directions:
             self.send_action(direction)
+
+            # astar.print_grid(player_position, target_position, tuple(self.get_self()["position"]), path)
 
             if self.check_reached_location(target):
                 return True
@@ -158,22 +160,23 @@ class Agent:
         exit_x, exit_y = self.get_exit_position()
 
         delta_x = player_position_x - exit_x
-
-        return player_position_y == exit_y and abs(delta_x <= 0.5)
+        delta_y = player_position_y - exit_y
+        
+        return (delta_y <= 0.5) and abs(delta_x <= 0.5)
 
     def leave(self):
         player_position = tuple(self.get_self()["position"])
         astar = AStar(self.map, player_position, self.get_exit_position())
         path = astar.plan()
 
-        logging.info(f"Leaving")
+        logging.info(f"Leaving from {player_position}")
 
         if not path:
             logging.error(f"Failed to find a path to Exit using A*.")
             return False
 
         directions = path_to_directions(path)
-        logging.info(f"Movement directions: {directions}")
+        # logging.info(f"Movement directions: {directions}")
 
         if self.check_reached_exit():
             self.send_action("WEST")
@@ -181,6 +184,8 @@ class Agent:
 
         for direction in directions:
             self.send_action(direction)
+
+            # astar.print_grid(player_position, self.get_exit_position(), tuple(self.get_self()["position"]), path)
 
             if self.check_reached_exit():
                 self.send_action("WEST")
