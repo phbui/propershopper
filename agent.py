@@ -144,7 +144,7 @@ class Agent:
         for direction in directions:
             self.send_action(direction)
 
-            # astar.print_grid(player_position, target_position, tuple(self.get_self()["position"]), path)
+            astar.print_grid(player_position, target_position, tuple(self.get_self()["position"]), path)
 
             if self.check_reached_location(target):
                 return True

@@ -72,14 +72,19 @@ class AStar:
         # If we're not near the goal, ensure we don't touch obstacles
         # (including diagonals).
         if not self.is_goal_or_adjacent(gx, gy) and not self.is_start_or_adjacent(gx,gy):
-            neighbors_8 = [
-                (gx + 1, gy), (gx - 1, gy), (gx, gy + 1), (gx, gy - 1),
-                (gx + 1, gy + 1), (gx + 1, gy - 1), (gx - 1, gy + 1), (gx - 1, gy - 1)
-            ]
-            for nx, ny in neighbors_8:
+            neighbors_check = []
+            for dx in range(-1, 2):   # -1, 0, 1
+                for dy in range(-2, 3):  # -2, -1, 0, 1, 2
+                    # Skip the cell itself
+                    if dx == 0 and dy == 0:
+                        continue
+                    neighbors_check.append((gx + dx, gy + dy))
+
+            for nx, ny in neighbors_check:
+                # Must also check map boundaries for each neighbor
                 if 0 <= nx < self.cols and 0 <= ny < self.rows:
-                    # If neighbor is an obstacle and isn't specifically start/goal
                     if self.grid[ny][nx] != 0:
+                        # If neighbor is an obstacle but not specifically the start/goal
                         if (nx, ny) != self.start_cell and (nx, ny) != self.goal_cell:
                             return False
 
@@ -92,7 +97,7 @@ class AStar:
         """
         Gx, Gy = self.goal_cell
         for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
+            for dy in [-2, -1, 0, 1, 2]:
                 if (gx, gy) == (Gx + dx, Gy + dy):
                     return True
         return False
@@ -103,7 +108,7 @@ class AStar:
         """
         Gx, Gy = self.start_cell
         for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
+            for dy in [-2, -1, 0, 1, 2]:
                 if (gx, gy) == (Gx + dx, Gy + dy):
                     return True
         return False
