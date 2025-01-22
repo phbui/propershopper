@@ -21,7 +21,9 @@ def path_to_directions(path):
 
         if abs(delta_x) > abs(delta_y):  # Horizontal movement
             directions.append("EAST" if delta_x > 0 else "WEST")
+            directions.append("EAST" if delta_x > 0 else "WEST")
         else:  # Vertical movement
+            directions.append("NORTH" if delta_y < 0 else "SOUTH")
             directions.append("NORTH" if delta_y < 0 else "SOUTH")
     return directions
 
@@ -110,7 +112,7 @@ class Agent:
             return False
 
         directions = path_to_directions(path)
-        logging.info(f"Movement directions: {directions}")
+        # logging.info(f"Movement directions: {directions}")
 
         if self.check_reached_location(target):
             return True

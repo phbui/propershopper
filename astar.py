@@ -62,7 +62,7 @@ class AStar:
         delta_goal_x = gx - goal_x
         delta_goal_y = gy - goal_y
 
-        if (gx, gy) == self.start_cell or abs(delta_goal_x <= 1 and delta_goal_y <= 1):
+        if (gx, gy) == self.start_cell or (gx, gy) == self.goal_cell:
             return True 
 
         if gx < 0 or gx >= self.cols or gy < 0 or gy >= self.rows:
