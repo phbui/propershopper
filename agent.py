@@ -20,21 +20,30 @@ def path_to_directions(path):
         delta_y = next_point[1] - current[1]
 
         if abs(delta_x) > abs(delta_y):  # Horizontal movement
-            directions.append("EAST" if delta_x > 0 else "WEST")
-            directions.append("EAST" if delta_x > 0 else "WEST")
+            move = "EAST" if delta_x > 0.25 else "WEST"
         else:  # Vertical movement
-            directions.append("NORTH" if delta_y < 0 else "SOUTH")
-            directions.append("NORTH" if delta_y < 0 else "SOUTH")
+            move = "NORTH" if delta_y < 0.25 else "SOUTH"
+
+        # Avoid immediate cancel-out moves
+        if directions and ((move == "NORTH" and directions[-1] == "SOUTH") or
+                           (move == "SOUTH" and directions[-1] == "NORTH") or
+                           (move == "EAST" and directions[-1] == "WEST") or
+                           (move == "WEST" and directions[-1] == "EAST")):
+            directions.pop()  # Remove the last move as it cancels out
+        else:
+            directions.append(move)
     return directions
 
 
+
 class Agent:
-    def __init__(self, sock_game, curr_player):
+    def __init__(self, sock_game, curr_player, shopping_list=None):
         self.sock_game = sock_game
         self.curr_player = curr_player
         self.map = None
         self.state_machine = StateMachine(self)
         self.last_violation = ""
+        self.shopping_list = shopping_list
 
     def send_action(self, action):
         action = f"{self.curr_player} {action}"
@@ -74,8 +83,11 @@ class Agent:
     def has_basket(self):
         return len(self.curr_state["baskets"] )!= 0
 
-    def shopping_list(self):
-        return self.get_self()["shopping_list"]
+    def get_shopping_list(self):
+        if self.shopping_list is not None:
+            return self.shopping_list
+        else:
+            return self.get_self()["shopping_list"]
 
     def basket_return_position(self):
         return self.curr_state["basketReturns"][0]["position"]
@@ -112,7 +124,7 @@ class Agent:
             return False
 
         directions = path_to_directions(path)
-        # logging.info(f"Movement directions: {directions}")
+        logging.info(f"Movement directions: {directions}")
 
         if self.check_reached_location(target):
             return True

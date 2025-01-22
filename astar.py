@@ -58,9 +58,6 @@ class AStar:
         """
         Check if the cell is inside the map and not an obstacle (grid == 0).
         """
-        goal_x, goal_y = self.goal_cell
-        delta_goal_x = gx - goal_x
-        delta_goal_y = gy - goal_y
 
         if (gx, gy) == self.start_cell or (gx, gy) == self.goal_cell:
             return True 
@@ -206,6 +203,7 @@ class AStar:
         # 1) Direct path to the goal
         direct_path = self.run_astar(self.start_cell, self.goal_cell)
         if direct_path is not None:
+            print(direct_path)
             return direct_path
         
         # print(f"Grid type: {type(self.grid)}")
@@ -216,12 +214,13 @@ class AStar:
         fallback_cell = self.find_closest_open_space_vertical(
             start_cell=self.start_cell,
             goal_cell=self.goal_cell,
-            max_search_distance=40  # number of grid cells to look up/down
+            max_search_distance=10  # number of grid cells to look up/down
         )
         if fallback_cell is None:
             return None  # no fallback found
 
         fallback_path = self.run_astar(self.start_cell, fallback_cell)
+        print(fallback_path)
         return fallback_path
 
     def print_grid(self, start=None, goal=None):

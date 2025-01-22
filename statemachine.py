@@ -26,7 +26,7 @@ class StateMachine:
         if not self.agent.has_basket():
             logging.info("Agent does not have a basket. Transitioning to 'GetBasket'.")
             self.state = "GetBasket"
-        elif self.agent.shopping_list():
+        elif self.agent.get_shopping_list():
             logging.info("Agent has a shopping list. Transitioning to 'Shop'.")
             self.state = "Shop"
         else:
@@ -45,7 +45,7 @@ class StateMachine:
                 logging.warning("Agent failed to pick up a basket. Staying in 'GetBasket'.")
 
     def handle_shop(self):
-        shopping_list = self.agent.shopping_list()
+        shopping_list = self.agent.get_shopping_list()
         logging.info(f"Handling 'Shop' state. Shopping list: {shopping_list}")
 
         if not shopping_list:
