@@ -16,7 +16,7 @@ class Map:
 
     def construct_map(self):
         all_positions = []
-        for entity_type in ["registers", "shelves", "cartReturns", "basketReturns", "counters", "carts", "baskets"]:
+        for entity_type in ["registers", "shelves", "cartReturns", "basketReturns", "counters", "carts"]:
             for entity in self.data.get(entity_type, []):
                 x, y = entity["position"]
                 w, h = entity["width"], entity["height"]
@@ -66,7 +66,6 @@ class Map:
             ("basketReturns", 7),  # Basket Return
             ("counters", 8),  # Counter
             ("carts", 2),  # Cart
-            ("baskets", 3),  # Basket
         ]:
             for entity in data.get(entity_type, []):
                 position = entity["position"]

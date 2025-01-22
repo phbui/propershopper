@@ -55,16 +55,58 @@ class AStar:
     # --------------------------------------------------------------------------
     def is_free_cell(self, gx, gy):
         """
-        Check if the cell is inside the map and not an obstacle (grid == 0).
+        1) Must be inside the map.
+        2) Cell itself must be free, except if it's exactly start or goal cell.
+        3) If not near the goal, also ensure no adjacency to obstacles.
         """
-
-        if (gx, gy) == self.start_cell or (gx, gy) == self.goal_cell:
-            return True 
-
+        # Boundary
         if gx < 0 or gx >= self.cols or gy < 0 or gy >= self.rows:
             return False
-        
-        return (self.grid[gy][gx] == 0)
+
+        # If the cell itself is an obstacle:
+        if self.grid[gy][gx] != 0:
+            # Allow it if it's exactly the start or goal
+            if (gx, gy) != self.start_cell and (gx, gy) != self.goal_cell:
+                return False
+
+        # If we're not near the goal, ensure we don't touch obstacles
+        # (including diagonals).
+        if not self.is_goal_or_adjacent(gx, gy) and not self.is_start_or_adjacent(gx,gy):
+            neighbors_8 = [
+                (gx + 1, gy), (gx - 1, gy), (gx, gy + 1), (gx, gy - 1),
+                (gx + 1, gy + 1), (gx + 1, gy - 1), (gx - 1, gy + 1), (gx - 1, gy - 1)
+            ]
+            for nx, ny in neighbors_8:
+                if 0 <= nx < self.cols and 0 <= ny < self.rows:
+                    # If neighbor is an obstacle and isn't specifically start/goal
+                    if self.grid[ny][nx] != 0:
+                        if (nx, ny) != self.start_cell and (nx, ny) != self.goal_cell:
+                            return False
+
+        return True
+
+    
+    def is_goal_or_adjacent(self, gx, gy):
+        """
+        Return True if (gx, gy) is the goal cell or one of its 8 adjacent cells.
+        """
+        Gx, Gy = self.goal_cell
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if (gx, gy) == (Gx + dx, Gy + dy):
+                    return True
+        return False
+
+    def is_start_or_adjacent(self, gx, gy):
+        """
+        Return True if (gx, gy) is the goal cell or one of its 8 adjacent cells.
+        """
+        Gx, Gy = self.start_cell
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if (gx, gy) == (Gx + dx, Gy + dy):
+                    return True
+        return False
 
     # --------------------------------------------------------------------------
     # A* CORE
