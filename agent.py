@@ -29,8 +29,6 @@ class Agent:
         else:
             self.map.update_map(self.curr_state)
 
-        self.map.print_map()
-
         if output_json["violations"]:
             self.last_violation = output_json["violations"][0]
             logging.warning(f"Violation: {self.last_violation}")
@@ -53,7 +51,8 @@ class Agent:
                 if entity["food"] == item:
                     logging.info(f"Item '{item}' found in {entity_type} at position {entity['position']}.")
                     x, y = entity["position"]
-                    y = y + entity["height"] / 2
+                    x = x + entity["width"] / 2
+                    y = y + entity["height"] / 2 - 0.25
 
                     return x, y
         logging.error(f"Item '{item}' not found in shelves or counters.")
@@ -99,6 +98,7 @@ class Agent:
         for i, waypoint in enumerate(path):
             is_last_waypoint = (i == len(path) - 1)
             while True:
+                self.map.print_map(target_position)
                 player_position = tuple(self.get_self()["position"])
                 logging.info(f"Moving from {player_position} to {target} through waypoint: {waypoint}.")
                 delta_x, delta_y = waypoint[0] - player_position[0], waypoint[1] - player_position[1]

@@ -161,25 +161,31 @@ class Map:
 
     def find_closest_north_south_open_space(self, goal):
         """Find the closest open space north or south of the goal."""
-        from collections import deque
-
         goal_x, goal_y = goal
-        queue = deque([(goal_x, goal_y - 1), (goal_x, goal_y + 1)])  # NORTH and SOUTH neighbors
-        visited = set(queue)
+        current_y_north = goal_y - 1  # Start looking north
+        current_y_south = goal_y + 1  # Start looking south
 
-        while queue:
-            current = queue.popleft()
-            current_world_pos = (current[0] * self.grid_size, current[1] * self.grid_size)
+        while current_y_north >= 0 or current_y_south < self.rows:
+            # Check north direction
+            if current_y_north >= 0:
+                current_world_pos_north = (goal_x * self.grid_size, current_y_north * self.grid_size)
+                if not self.is_obstacle(current_world_pos_north):
+                    logging.info(f"Closest open space (north) found: ({goal_x}, {current_y_north}) for goal: {goal}.")
+                    return goal_x, current_y_north
+                current_y_north -= 1  # Move one step further north
 
-            # Check if the current position is an open space
-            if not self.is_obstacle(current_world_pos):
-                logging.info(f"Closest open space (north/south) found: {current} for goal: {goal}.")
-                return current
+            # Check south direction
+            if current_y_south < self.rows:
+                current_world_pos_south = (goal_x * self.grid_size, current_y_south * self.grid_size)
+                if not self.is_obstacle(current_world_pos_south):
+                    logging.info(f"Closest open space (south) found: ({goal_x}, {current_y_south}) for goal: {goal}.")
+                    return goal_x, current_y_south
+                current_y_south += 1  # Move one step further south
 
         logging.error(f"No open space found north or south of the goal: {goal}.")
         raise ValueError("No open space found north or south of the goal.")
 
-    def print_map(self):
+    def print_map(self, goal=None):
         # Mapping of values to single-character symbols and colors
         value_to_symbol = {
             0: (" ", "\033[0m"),  # Empty space (reset color)
@@ -193,10 +199,18 @@ class Map:
             8: ("O", "\033[95m"),  # Counter (Purple)
         }
 
+        print(f"goal at: {goal}")
+
         logging.info("Grid Map:")
-        for row in self.grid:
+        for row_index, row in enumerate(self.grid):
             row_output = []
-            for cell in row:
+            for col_index, cell in enumerate(row):
+                if goal:
+
+                    goal_x, goal_y = self.to_grid_coordinates(goal)
+                    if (col_index, row_index) == (goal_x, goal_y):  # Inverted y-axis
+                        row_output.append(f"\033[91mG\033[0m")  # Highlight goal as 'G' in red
+                        continue
                 symbol, color = value_to_symbol.get(cell, ("?", "\033[91m"))  # Default to '?' in red for unknown values
                 row_output.append(f"{color}{symbol}\033[0m")  # Add color and reset after each symbol
             logging.info("".join(row_output)) 
