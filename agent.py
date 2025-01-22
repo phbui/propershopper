@@ -152,6 +152,45 @@ class Agent:
         
         self.correct_direction(target_position)
 
+    def check_reached_exit(self):
+        player_position_x, player_position_y = tuple(self.get_self()["position"])
+
+        exit_x, exit_y = self.get_exit_position()
+
+        delta_x = player_position_x - exit_x
+
+        return player_position_y == exit_y and abs(delta_x <= 0.5)
+
+    def leave(self):
+        player_position = tuple(self.get_self()["position"])
+        astar = AStar(self.map, player_position, self.get_exit_position())
+        path = astar.plan()
+
+        logging.info(f"Leaving")
+
+        if not path:
+            logging.error(f"Failed to find a path to Exit using A*.")
+            return False
+
+        directions = path_to_directions(path)
+        logging.info(f"Movement directions: {directions}")
+
+        if self.check_reached_exit():
+            self.send_action("WEST")
+            return True
+
+        for direction in directions:
+            self.send_action(direction)
+
+            if self.check_reached_exit():
+                self.send_action("WEST")
+                return True
+            if self.check_collision():
+                logging.warning("Collision detected. Replanning...")
+                return self.leave()
+        
+        self.correct_direction(self.get_exit_position())
+
     def interact(self):
         self.send_action("INTERACT")
 

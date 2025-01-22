@@ -2,7 +2,7 @@ import math
 import heapq
 
 class AStar:
-    def __init__(self, map_data, start, goal, step_size=0.5, max_iter=1000, buffer=0.5):
+    def __init__(self, map_data, start, goal, step_size=0.15, max_iter=1000, buffer=0.6):
         """
         AStar replacement for RRT with the same constructor signature.
         step_size, max_iter, and buffer are unused by A*, but kept for compatibility.

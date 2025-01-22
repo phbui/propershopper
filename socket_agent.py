@@ -22,7 +22,7 @@ if __name__ == "__main__":
     sock_game = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock_game.connect((HOST, PORT))
 
-    agent = Agent(sock_game, 0, ["red bell pepper", "ham"])
+    agent = Agent(sock_game, 0, ["red bell pepper"])
 
     agent.send_action("NOP")
 
