@@ -3,10 +3,26 @@ import logging
 from utils import recv_socket_data
 from map import Map
 from statemachine import StateMachine
+from rrt import RRT
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 direction_map = {0: "NORTH", 1: "SOUTH", 2: "EAST", 3: "WEST"}
+
+def path_to_directions(path):
+    directions = []
+    for i in range(len(path) - 1):
+        current = path[i]
+        next_point = path[i + 1]
+        delta_x = next_point[0] - current[0]
+        delta_y = next_point[1] - current[1]
+
+        if abs(delta_x) > abs(delta_y):  # Horizontal movement
+            directions.append("EAST" if delta_x > 0 else "WEST")
+        else:  # Vertical movement
+            directions.append("NORTH" if delta_y < 0 else "SOUTH")
+    return directions
+
 
 class Agent:
     def __init__(self, sock_game, curr_player):
@@ -23,7 +39,6 @@ class Agent:
         output = recv_socket_data(self.sock_game)
         output_json = json.loads(output)
         self.curr_state = output_json["observation"]
-
         if not self.map:
             self.map = Map(self.curr_state)
         else:
@@ -52,7 +67,7 @@ class Agent:
                     logging.info(f"Item '{item}' found in {entity_type} at position {entity['position']}.")
                     x, y = entity["position"]
                     x = x + entity["width"] / 2
-                    y = y + entity["height"] / 2 - 0.25
+                    y = y + entity["height"]
 
                     return x, y
         logging.error(f"Item '{item}' not found in shelves or counters.")
@@ -65,78 +80,31 @@ class Agent:
         if self.get_self()['direction'] != target_direction:
             self.send_action(target_direction)
 
-    def calculate_direction(self, current, target):
-        current_x, current_y = current
-        target_x, target_y = target
-
-        # Determine direction
-        if target_y > current_y:
-            return direction_map[1]  # NORTH
-        elif target_y < current_y:
-            return direction_map[3]  # SOUTH
-        elif target_x > current_x:
-            return direction_map[2]  # EAST
-        elif target_x < current_x:
-            return direction_map[4]  # WEST
-        else:
-            return None
-
     def move_to(self, target, target_position):
         player_position = tuple(self.get_self()["position"])
-        target_position = tuple(target_position)
-        
-        path = self.map.a_star_pathfinding(player_position, target_position)
+        rrt = RRT(self.map, player_position, target_position)
+        path = rrt.plan()
+
+        logging.info(f"Moving from {player_position} to {target} at {target_position}")
 
         if not path:
-            #logging.error(f"No path to {target} found!")
+            logging.error(f"Failed to find a path to {target} using RRT.")
             return False
-        
-        previous_positions = []
-        repeat_count = 0  # Counter for detecting repeated movement
-        max_repeats = 2  # Threshold for switching axis
 
-        for i, waypoint in enumerate(path):
-            is_last_waypoint = (i == len(path) - 1)
-            while True:
-                self.map.print_map(target_position)
-                player_position = tuple(self.get_self()["position"])
-                logging.info(f"Moving from {player_position} to {target} through waypoint: {waypoint}.")
-                delta_x, delta_y = waypoint[0] - player_position[0], waypoint[1] - player_position[1]
-                if is_last_waypoint and abs(delta_x) < 0.5 and abs(delta_y) < 0.5:
-                    logging.info(f"Reached final target: {target_position}.")
-                    self.check_direction(self.calculate_direction(player_position, target_position))
-                    return True
-                elif not is_last_waypoint and abs(delta_x) < 0.5 and abs(delta_y) < 0.5:
-                    break
-                if self.check_reached_location(target):
-                    self.check_direction(self.calculate_direction(player_position, target_position))
-                    return True
-                
-                # Detect repeated movements
-                if previous_positions and player_position == previous_positions[-1]:
-                    repeat_count += 1
-                    logging.warning(f"Repeated position detected: {player_position}. Repeat count: {repeat_count}")
-                else:
-                    repeat_count = 0  # Reset repeat count if movement progresses
-                previous_positions.append(player_position)
+        directions = path_to_directions(path)
+        logging.info(f"Movement directions: {directions}")
 
-                if repeat_count >= max_repeats:
-                    # Switch axis if stuck
-                    if abs(delta_x) >= abs(delta_y):  # Previously moving in x-axis
-                        action = "NORTH" if delta_y < 0 else "SOUTH"
-                    else:  # Previously moving in y-axis
-                        action = "EAST" if delta_x > 0 else "WEST"
-                    logging.warning(f"Switching axis due to repeated movement. New action: {action}")
-                else:
-                    # Normal movement logic
-                    if abs(delta_x) >= abs(delta_y):
-                        action = "EAST" if delta_x > 0 else "WEST"
-                    else:
-                        action = "NORTH" if delta_y < 0 else "SOUTH"
+        for direction in directions:
+            # self.map.print_map(target_position)
+            self.send_action(direction)
+            if self.check_reached_location(target):
+                return True
+            if self.check_collision():
+                logging.warning("Collision detected. Replanning...")
+                return self.move_to(target, target_position)  # Replan dynamically
 
-                self.send_action(action)
-        return False
-
+        return True
+    
     def interact(self):
         self.send_action("INTERACT")
 
@@ -151,6 +119,10 @@ class Agent:
 
     def get_self(self):
         return self.curr_state["players"][self.curr_player]
+    
+    def get_exit_position(self):
+        return [0, 15.3]
+
 
     def run(self):
         while self.state_machine.state != "Leave":

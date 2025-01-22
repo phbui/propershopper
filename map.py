@@ -42,9 +42,12 @@ class Map:
 
     def update_grid(self, grid, data):
         def mark_obstacle(grid, position, width, height, value=1, name="Unknown"):
-            start_x, start_y = position
-            end_x = start_x + width
-            end_y = start_y + height
+            # Calculate buffered boundaries
+            buffer = 0.25 * self.grid_size # Ensure buffer scales with grid size
+            start_x = max(0, position[0] - buffer)
+            start_y = max(0, position[1] - buffer)
+            end_x = min(position[0] + width + buffer, self.cols * self.grid_size)
+            end_y = min(position[1] + height + buffer, self.rows * self.grid_size)
 
             for y in np.arange(start_y, end_y, self.grid_size):
                 for x in np.arange(start_x, end_x, self.grid_size):
@@ -98,92 +101,6 @@ class Map:
                     logging.debug(f"Position {position} (adjusted for size) is an obstacle.")
                     return True
         return False
-
-    def a_star_pathfinding(self, start, goal):
-        def heuristic(a, b):
-            return abs(a[0] - b[0]) + abs(a[1] - b[1])  # Manhattan distance
-
-        start = tuple(map(lambda x: int(x / self.grid_size), start))
-        goal = tuple(map(lambda x: int(x / self.grid_size), goal))
-
-        adjusted_goal = goal
-
-        # Restrict approach to goal from north or south
-        if self.is_obstacle((goal[0] * self.grid_size, goal[1] * self.grid_size)):
-            logging.info("Goal is an obstacle. Searching for the closest open space north or south to the goal...")
-            adjusted_goal = self.find_closest_north_south_open_space(goal)
-
-        open_set = []
-        heapq.heappush(open_set, (0, start))
-        came_from = {}
-        g_score = {start: 0}
-        f_score = {start: heuristic(start, adjusted_goal)}
-
-        while open_set:
-            _, current = heapq.heappop(open_set)
-
-            if current == adjusted_goal:
-                path = []
-                while current in came_from:
-                    path.append(current)
-                    current = came_from[current]
-                path.reverse()
-
-                # Add the obstacle grid cell as the final step
-                if adjusted_goal == goal or not self.is_obstacle((goal[0] * self.grid_size, goal[1] * self.grid_size)):
-                    path.append(goal)
-                logging.info(f"Path found: {path}")
-                return [(x * self.grid_size, y * self.grid_size) for x, y in path]
-
-            neighbors = [
-                (current[0] + 1, current[1]),  # EAST
-                (current[0] - 1, current[1]),  # WEST
-                (current[0], current[1] - 1),  # NORTH
-                (current[0], current[1] + 1),  # SOUTH
-            ]
-
-            for neighbor in neighbors:
-                world_position = (neighbor[0] * self.grid_size, neighbor[1] * self.grid_size)
-
-                if self.is_obstacle(world_position):
-                    continue
-
-                tentative_g_score = g_score[current] + 1
-
-                if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
-                    came_from[neighbor] = current
-                    g_score[neighbor] = tentative_g_score
-                    f_score[neighbor] = g_score[neighbor] + heuristic(neighbor, adjusted_goal)
-                    heapq.heappush(open_set, (f_score[neighbor], neighbor))
-
-        logging.error("No path found.")
-        return None
-
-    def find_closest_north_south_open_space(self, goal):
-        """Find the closest open space north or south of the goal."""
-        goal_x, goal_y = goal
-        current_y_north = goal_y - 1  # Start looking north
-        current_y_south = goal_y + 1  # Start looking south
-
-        while current_y_north >= 0 or current_y_south < self.rows:
-            # Check north direction
-            if current_y_north >= 0:
-                current_world_pos_north = (goal_x * self.grid_size, current_y_north * self.grid_size)
-                if not self.is_obstacle(current_world_pos_north):
-                    logging.info(f"Closest open space (north) found: ({goal_x}, {current_y_north}) for goal: {goal}.")
-                    return goal_x, current_y_north
-                current_y_north -= 1  # Move one step further north
-
-            # Check south direction
-            if current_y_south < self.rows:
-                current_world_pos_south = (goal_x * self.grid_size, current_y_south * self.grid_size)
-                if not self.is_obstacle(current_world_pos_south):
-                    logging.info(f"Closest open space (south) found: ({goal_x}, {current_y_south}) for goal: {goal}.")
-                    return goal_x, current_y_south
-                current_y_south += 1  # Move one step further south
-
-        logging.error(f"No open space found north or south of the goal: {goal}.")
-        raise ValueError("No open space found north or south of the goal.")
 
     def print_map(self, goal=None):
         # Mapping of values to single-character symbols and colors

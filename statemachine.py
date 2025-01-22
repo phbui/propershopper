@@ -56,7 +56,7 @@ class StateMachine:
                     self.sub_state = "MoveToItemLocation"
                 else:
                     self.shopping_index += 1
-                    if self.shopping_index >= len(shopping_list):
+                    if self.shopping_index >= 2:
                         self.state = "Leave"
                     else:
                         self.sub_state = "MoveToItemLocation"
