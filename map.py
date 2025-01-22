@@ -43,7 +43,7 @@ class Map:
     def update_grid(self, grid, data):
         def mark_obstacle(grid, position, width, height, value=1, name="Unknown"):
             # Calculate buffered boundaries
-            buffer_x = 0.5 * self.grid_size # Ensure buffer scales with grid size
+            buffer_x = 1 * self.grid_size # Ensure buffer scales with grid size
             buffer_y = 1 * self.grid_size
             start_x = max(0, position[0] - buffer_x)
             start_y = max(0, position[1] - buffer_y)
