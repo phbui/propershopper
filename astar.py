@@ -2,7 +2,7 @@ import math
 import heapq
 
 class AStar:
-    def __init__(self, map_data, start, goal, step_size=0.15, max_iter=1000, buffer=0.6):
+    def __init__(self, map_data, start, goal, step_size=0.15, max_iter=1000):
         """
         AStar replacement for RRT with the same constructor signature.
         step_size, max_iter, and buffer are unused by A*, but kept for compatibility.
@@ -16,7 +16,6 @@ class AStar:
         self.goal = tuple(goal)
         self.step_size = step_size
         self.max_iter = max_iter
-        self.buffer = buffer
 
         # Access grid info from the map
         self.grid_size = map_data.grid_size
