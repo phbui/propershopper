@@ -45,7 +45,7 @@ def path_to_directions(path, step_size=0.3):
 
     return directions
 
-class Agent:
+class Agent_AStar:
     def __init__(self, sock_game, curr_player, shopping_list=None):
         self.sock_game = sock_game
         self.curr_player = curr_player
