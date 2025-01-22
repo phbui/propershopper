@@ -43,11 +43,12 @@ class Map:
     def update_grid(self, grid, data):
         def mark_obstacle(grid, position, width, height, value=1, name="Unknown"):
             # Calculate buffered boundaries
-            buffer = 0.25 * self.grid_size # Ensure buffer scales with grid size
-            start_x = max(0, position[0] - buffer)
-            start_y = max(0, position[1] - buffer)
-            end_x = min(position[0] + width + buffer, self.cols * self.grid_size)
-            end_y = min(position[1] + height + buffer, self.rows * self.grid_size)
+            buffer_x = 0.25 * self.grid_size # Ensure buffer scales with grid size
+            buffer_y = 1 * self.grid_size
+            start_x = max(0, position[0] - buffer_x)
+            start_y = max(0, position[1] - buffer_y)
+            end_x = min(position[0] + width + buffer_x, self.cols * self.grid_size)
+            end_y = min(position[1] + height + buffer_y, self.rows * self.grid_size)
 
             for y in np.arange(start_y, end_y, self.grid_size):
                 for x in np.arange(start_x, end_x, self.grid_size):
