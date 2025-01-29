@@ -1,17 +1,12 @@
-import json
 import math
 import logging
-from utils import recv_socket_data
+from agent_class import Agent_Class
 from map import Map
 from astar import AStar
 from statemachine import StateMachine
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-direction_map = {0: "NORTH", 1: "SOUTH", 2: "EAST", 3: "WEST"}
-
-import math
 
 def path_to_directions(path, step_size=0.3):
     directions = []
@@ -45,21 +40,16 @@ def path_to_directions(path, step_size=0.3):
 
     return directions
 
-class Agent_AStar:
+class Agent_AStar(Agent_Class):
     def __init__(self, sock_game, curr_player, shopping_list=None):
-        self.sock_game = sock_game
-        self.curr_player = curr_player
+        super().__init__(sock_game, curr_player)
         self.map = None
         self.state_machine = StateMachine(self)
         self.last_violation = ""
         self.shopping_list = shopping_list
 
     def send_action(self, action):
-        action = f"{self.curr_player} {action}"
-        logging.debug(f"Sending action: {action}")
-        self.sock_game.send(str.encode(action))
-        output = recv_socket_data(self.sock_game)
-        output_json = json.loads(output)
+        output_json = super().send_action(action)
         self.curr_state = output_json["observation"]
         if not self.map:
             self.map = Map(self.curr_state)
@@ -81,13 +71,13 @@ class Agent_AStar:
 
         # Determine direction
         if target_y < player_y:
-            direction = direction_map[0]  # NORTH
+            direction = Agent_Class.direction_map[0]  # NORTH
         elif target_y > player_y:
-            direction = direction_map[1]  # SOUTH
+            direction = Agent_Class.direction_map[1]  # SOUTH
         elif target_x > player_x:
-            direction = direction_map[2]  # EAST
+            direction = Agent_Class.direction_map[2]  # EAST
         elif target_x < player_x:
-            direction = direction_map[3]  # WEST
+            direction = Agent_Class.direction_map[3]  # WEST
 
         self.send_action(direction)
 

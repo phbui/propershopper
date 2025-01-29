@@ -3,6 +3,7 @@
 
 import socket
 from agent_astar import Agent_AStar
+from agent_qlearn import Agent_QLearn
 
 from env import SupermarketEnv
 
@@ -22,6 +23,7 @@ if __name__ == "__main__":
     sock_game = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock_game.connect((HOST, PORT))
 
-    agent_astar = Agent_AStar(sock_game, 0)
-    agent_astar.send_action("NOP")
-    agent_astar.run()
+    # agent_astar = Agent_AStar(sock_game, 0)
+    # agent_astar.send_action("NOP")
+    # agent_astar.run()
+
