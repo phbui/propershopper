@@ -43,8 +43,8 @@ class QLAgent:
         
     def learning(self, action, rwd, state, next_state):
         """Update Q-table using Q-learning formula."""
-        s = self.trans(state)           # Convert raw state to simplified state
-        s_prime = self.trans(next_state)
+        s = str(tuple(self.trans(state)))       # Convert state to string for indexing
+        s_prime = str(tuple(self.trans(next_state)))
 
         # Ensure Q-table includes both current and next state
         if s not in self.qtable.index:
@@ -62,12 +62,12 @@ class QLAgent:
 
     def choose_action(self, state):
         """Select an action using an epsilon-greedy policy."""
-        s = self.trans(state)  # Convert state
+        s = str(tuple(self.trans(state)))   # Convert state
         
         # If state is new, initialize Q-values
         if s not in self.qtable.index:
-            self.qtable.loc[s] = np.zeros(self.action_space)
-        
+            self.qtable = pd.concat([self.qtable, pd.DataFrame([np.zeros(self.action_space)], index=[s])])
+                
         # Exploration-exploitation trade-off
         if np.random.rand() < self.epsilon:
             return np.random.choice(self.action_space)  # Random action (explore)

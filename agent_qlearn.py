@@ -61,10 +61,12 @@ class Agent_QLearn(Agent_Class):
         for _ in range(episodes):  # Number of training episodes
             self.restart_game()  # Reset environment at the start of each episode
             state = self.send_action("NOP")
+            state = state["observation"]
             done = False
             
             while not done:
                 action_index, next_state = self.act(state)  # Choose action
+                next_state = next_state["observation"]
                 reward = self.get_reward(state, next_state, action_index)
                 self.update(action_index, reward, state, next_state)  # Q-learning update
                 state = next_state 

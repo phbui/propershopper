@@ -24,6 +24,6 @@ if __name__ == "__main__":
     # agent_astar.run()
 
     print("Starting Agent_QLearning")
-    agent_qlearn = Agent_QLearn(sock_game, 0, SupermarketEnv)
+    agent_qlearn = Agent_QLearn(sock_game, 0, SupermarketEnv())
     agent_qlearn.run()
 
