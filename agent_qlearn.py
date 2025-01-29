@@ -3,10 +3,9 @@ from agent_class import Agent_Class
 from Q_Learning_agent import QLAgent
 
 class Agent_QLearn(Agent_Class):
-    def __init__(self, sock_game, curr_player, env):
+    def __init__(self, sock_game, curr_player):
         super().__init__(sock_game, curr_player)
         self.agent = QLAgent(action_space=len(self.ACTION_COMMANDS))  # 7 actions
-        self.env = env
 
     def act(self, state):
         """Choose an action and send it to the environment."""
@@ -55,10 +54,10 @@ class Agent_QLearn(Agent_Class):
 
     def restart_game(self):
         """Force restart by reconnecting to the server."""
-        self.env.reset()
+        self.send_action("RESET")
 
-    def run(self, episodes=1000):
-        for _ in range(episodes):  # Number of training episodes
+    def run(self, episodes=100, save_interval=10):
+        for episode in range(episodes):  # Number of training episodes
             self.restart_game()  # Reset environment at the start of each episode
             state = self.send_action("NOP")
             state = state["observation"]
@@ -70,3 +69,8 @@ class Agent_QLearn(Agent_Class):
                 reward = self.get_reward(state, next_state, action_index)
                 self.update(action_index, reward, state, next_state)  # Q-learning update
                 state = next_state 
+
+            # Save Q-table every `save_interval` episodes
+            if episode % save_interval == 0:
+                print(f"Finished episode {episode}, saving...")
+                self.agent.save_qtable()
