@@ -1,6 +1,8 @@
-import socket
+import logging
 from agent_class import Agent_Class
 from Q_Learning_agent import QLAgent
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class Agent_QLearn(Agent_Class):
     ACTION_COMMANDS = [
@@ -12,6 +14,7 @@ class Agent_QLearn(Agent_Class):
     def __init__(self, sock_game, curr_player):
         super().__init__(sock_game, curr_player)
         self.agent = QLAgent(action_space=len(self.ACTION_COMMANDS))
+        self.done = False
 
     def translate_command(self, command):
         if command.startswith("TURN_"):
@@ -49,48 +52,50 @@ class Agent_QLearn(Agent_Class):
         # Carrot shelf position (goal)
         carrot_shelf_x, carrot_shelf_y = 11.5, 17.5
 
-        # Compute Manhattan distance before and after the action
-        prev_distance = abs(x - carrot_shelf_x) + abs(y - carrot_shelf_y)
-        new_distance = abs(next_x - carrot_shelf_x) + abs(next_y - carrot_shelf_y)
+        current_distance = abs(next_x - carrot_shelf_x) + abs(next_y - carrot_shelf_y)
 
-        # Reward based on Manhattan distance improvement
-        distance_reward = (prev_distance - new_distance)  # Positive if moving closer, negative if moving away
-
-        # Scale reward to encourage faster movement
-        reward = 1.1 * distance_reward  # Multiplier controls how much distance affects learning
+        # Directly assign negative reward based on current distance
+        reward = -current_distance * 0.1  # Positive if moving closer, negative if moving away
 
         # Negative reward for staying in the same position (unless very close to the goal)
         if (x, y) == (next_x, next_y):
-            if new_distance > 1:  # If not near goal, punish staying still
+            if current_distance > 2:  # If not near goal, punish staying still
                 reward -= 2  
             else:  # If near goal, staying is neutral
                 reward += 0  
 
-        # Negative reward for rule violations
-        if len(state["violations"]) > 0:
-            reward -= 5 * len(state["violations"])  # Each violation carries a penalty
+        # Negative reward for rule violations\
+        violations = state["violations"]
+        if len(violations) > 0:
+            if any("carrot" in item for item in violations):
+                reward += 10 * len(state["violations"])
+            else:
+                reward -= 5 * len(state["violations"])  # Each violation carries a penalty
 
         # Reward for successfully picking up a carrot
         if player["holding_food"] is None and next_player["holding_food"] == "carrot":
             reward += 10  # High reward for goal completion
+            self.done = True
 
         # Penalty for incorrect interaction
         if self.ACTION_COMMANDS[action_index] == "INTERACT" and next_player["holding_food"] is None:
             reward -= 5  # Discourage unnecessary interactions
 
+        logging.debug(f'Reward: {reward}')
+
         return reward
 
     def restart_game(self):
         """Force restart by reconnecting to the server."""
+        self.done = False
         self.send_action("RESET")
 
     def run(self, episodes=100, save_interval=10):
         for episode in range(episodes):  # Number of training episodes
             self.restart_game()  # Reset environment at the start of each episode
             state = self.send_action("NOP")
-            done = False
-            
-            while not done:
+
+            while not self.done:
                 action_index, next_state = self.act(state["observation"])  # Choose action
                 reward = self.get_reward(state, next_state, action_index)
                 self.update(action_index, reward, state["observation"], next_state["observation"])  # Q-learning update

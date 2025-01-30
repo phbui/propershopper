@@ -28,6 +28,11 @@ class QLAgent:
             with open(self.qtable_path, "r") as f:
                 data = json.load(f)
                 qtable = pd.DataFrame.from_dict(data)
+
+                for i in range(self.action_space):
+                    if i not in qtable.columns:
+                        qtable[i] = 0  # Initialize missing actions with zeros
+
                 print(f"Q-table loaded from {self.qtable_path}")
                 return qtable
         else:
@@ -89,14 +94,14 @@ class QLAgent:
         if s not in self.qtable.index:
             self.qtable.loc[s] = np.zeros(self.action_space)  # Initialize with zeros
         if s_prime not in self.qtable.index:
-            self.qtable.loc[s_prime] = np.zeros(self.action_space)
+            self.qtable.loc[s_prime] = pd.Series(np.zeros(self.action_space), index=self.qtable.columns)
 
         # Find the best estimated Q-value for next state s' (i.e., max Q(s', a'))
         best_next_q = np.max(self.qtable.loc[s_prime])  # max_a' Q(s', a')
 
         # Compute the Q-learning update:
         # Q(s, a) = Q(s, a) + α * (r + γ * max(Q(s', a')) - Q(s, a))
-        self.qtable.loc[s, action] += self.alpha * (rwd + self.gamma * best_next_q - self.qtable.loc[s, action])
+        self.qtable.loc[s, action] = float(self.qtable.loc[s, action]) + self.alpha * (rwd + self.gamma * best_next_q - self.qtable.loc[s, action])
 
         # Decay epsilon to reduce exploration over time, ensuring more exploitation of learned knowledge
         self.epsilon = max(self.mini_epsilon, self.epsilon * self.decay)
