@@ -4,6 +4,9 @@
 import socket
 from agent_astar import Agent_AStar
 from agent_qlearn import Agent_QLearn
+import logging
+
+logging.getLogger().setLevel(logging.INFO)
 
 if __name__ == "__main__":
 
@@ -21,7 +24,7 @@ if __name__ == "__main__":
     # agent_astar.send_action("NOP")
     # agent_astar.run()
 
-    print("Starting Agent_QLearning")
+    logging.debug("Starting Agent_QLearning")
     agent_qlearn = Agent_QLearn(sock_game, 0)
     agent_qlearn.run()
 

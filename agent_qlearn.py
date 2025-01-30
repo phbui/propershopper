@@ -1,8 +1,7 @@
-import logging
+import math
 from agent_class import Agent_Class
 from Q_Learning_agent import QLAgent
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+import logging
 
 class Agent_QLearn(Agent_Class):
     ACTION_COMMANDS = [
@@ -16,12 +15,18 @@ class Agent_QLearn(Agent_Class):
         self.agent = QLAgent(action_space=len(self.ACTION_COMMANDS))
         self.done = False
 
-    def translate_command(self, command):
+    def translate_command(self, state, command):
         if command.startswith("TURN_"):
             return [command.replace("TURN_", "")]  # Remove "TURN_" prefix and send once
         
         elif command.startswith("MOVE_"):
-            return [command.replace("MOVE_", ""), command.replace("MOVE_", "")]  # Send movement twice
+            direction = state["players"][0]["direction"]
+            new_command = command.replace("MOVE_", "")
+
+            if (self.DIRECTION_MAP[direction] == new_command):
+                return [new_command]
+            else:
+                return [new_command, new_command]  # Send movement twice
         
         else:
             return [command]  
@@ -29,7 +34,7 @@ class Agent_QLearn(Agent_Class):
     def act(self, state):
         """Choose an action and send it to the environment."""
         action_index = self.agent.choose_action(state)
-        action_commands = self.translate_command(self.ACTION_COMMANDS[action_index])
+        action_commands = self.translate_command(state, self.ACTION_COMMANDS[action_index])
         result = None
         for action in action_commands:
             result = self.send_action(action)  # Send each translated action separately
@@ -81,6 +86,7 @@ class Agent_QLearn(Agent_Class):
         if self.ACTION_COMMANDS[action_index] == "INTERACT" and next_player["holding_food"] is None:
             reward -= 5  # Discourage unnecessary interactions
 
+        reward = math.trunc(reward * 1e9) / 1e9
         logging.debug(f'Reward: {reward}')
 
         return reward
@@ -101,7 +107,5 @@ class Agent_QLearn(Agent_Class):
                 self.update(action_index, reward, state["observation"], next_state["observation"])  # Q-learning update
                 state = next_state 
 
-            # Save Q-table every `save_interval` episodes
-            if episode % save_interval == 0:
-                print(f"Finished episode {episode}, saving...")
-                self.agent.save_qtable()
+            logging.info(f"Finished episode {episode}, saving...")
+            self.agent.save_qtable()

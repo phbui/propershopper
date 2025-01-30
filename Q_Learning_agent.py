@@ -3,6 +3,7 @@ import pandas as pd
 import torch.nn.functional as F
 import json  # Import json for dictionary serialization
 import os
+import logging
 
 class QLAgent:
     # here are some default parameters, you can use different ones
@@ -29,16 +30,28 @@ class QLAgent:
                 data = json.load(f)
                 qtable = pd.DataFrame.from_dict(data)
 
-                for i in range(self.action_space):
-                    if i not in qtable.columns:
-                        qtable[i] = 0  # Initialize missing actions with zeros
+                # Convert columns to strings for consistent indexing
+                qtable.columns = qtable.columns.astype(str)
 
-                print(f"Q-table loaded from {self.qtable_path}")
+                # Ensure correct number of columns
+                expected_columns = [str(i) for i in range(self.action_space)]
+                for col in expected_columns:
+                    if col not in qtable.columns:
+                        qtable[col] = 0  # Add missing columns
+
+                qtable = qtable[expected_columns]  # Reorder columns if necessary
+
+                # Summarized debug output
+                logging.debug(f"Q-table loaded from {self.qtable_path}: "
+                            f"{qtable.shape[0]} states, {qtable.shape[1]} actions. "
+                            f"Columns (first 5): {list(qtable.columns[:5])}...")
+
                 return qtable
         else:
-            return pd.DataFrame(columns=[i for i in range(self.action_space)])
-        
-    def trans(self, state, granularity=0.5):
+            logging.warning("Q-table file not found. Initializing new Q-table.")
+            return pd.DataFrame(columns=[str(i) for i in range(self.action_space)])
+
+    def trans(self, state, granularity=0.15):
         """Transform raw environment state into a learnable Q-table state."""
         player = state["players"][0]
         player_x, player_y = player["position"]
@@ -86,24 +99,31 @@ class QLAgent:
         is known as the temporal difference (TD) error.
         """
         
-        # Convert state and next_state to hashable string keys for indexing in Q-table
+        # Convert state and next_state to string keys for indexing
         s = str(tuple(self.trans(state)))       
         s_prime = str(tuple(self.trans(next_state)))
 
-        # Ensure Q-table includes both the current state (s) and next state (s')
+        logging.info(f"Learning Update - State: {s[:50]} | Next State: {s_prime[:50]} | Action: {action} | Reward: {rwd}")
+
+        # Ensure Q-table includes both states
         if s not in self.qtable.index:
             self.qtable.loc[s] = np.zeros(self.action_space)  # Initialize with zeros
         if s_prime not in self.qtable.index:
-            self.qtable.loc[s_prime] = pd.Series(np.zeros(self.action_space), index=self.qtable.columns)
+            self.qtable.loc[s_prime] = pd.Series(np.zeros(len(self.qtable.columns)), index=self.qtable.columns)
 
-        # Find the best estimated Q-value for next state s' (i.e., max Q(s', a'))
-        best_next_q = np.max(self.qtable.loc[s_prime])  # max_a' Q(s', a')
+        # Find the best estimated Q-value for next state s'
+        best_next_q = np.max(self.qtable.loc[s_prime])  
 
-        # Compute the Q-learning update:
-        # Q(s, a) = Q(s, a) + α * (r + γ * max(Q(s', a')) - Q(s, a))
-        self.qtable.loc[s, action] = float(self.qtable.loc[s, action]) + self.alpha * (rwd + self.gamma * best_next_q - self.qtable.loc[s, action])
+        # Compute the Q-learning update
+        try:
+            self.qtable.loc[s, str(action)] = float(self.qtable.loc[s, str(action)]) + self.alpha * (rwd + self.gamma * best_next_q - self.qtable.loc[s, str(action)])
+        except KeyError:
+            logging.error(f"Action {action} not found in Q-table columns. Available columns (first 5): {list(self.qtable.columns[:5])}...")
+            raise  # Raise the error to prevent silent failures
 
-        # Decay epsilon to reduce exploration over time, ensuring more exploitation of learned knowledge
+        logging.debug(f"Updated Q-value at (State={s[:50]}..., Action={action}): {self.qtable.loc[s, str(action)]}")
+
+        # Decay epsilon
         self.epsilon = max(self.mini_epsilon, self.epsilon * self.decay)
 
     def choose_action(self, state):
@@ -119,14 +139,16 @@ class QLAgent:
         # Convert state into a hashable string key for indexing in Q-table
         s = str(tuple(self.trans(state)))
 
-        # If the state is new (not in Q-table), initialize its Q-values to zero
         if s not in self.qtable.index:
+            logging.warning(f"New state encountered, initializing: {s[:50]}...")
             self.qtable.loc[s] = np.zeros(self.action_space)
 
         # Exploration-Exploitation Trade-off:
         if np.random.rand() < self.epsilon:
-            # Choose a random action with probability epsilon (ε) → EXPLORATION
-            return np.random.choice(self.action_space)
+            action = np.random.choice(self.action_space)
+            logging.debug(f"Exploration: Choosing random action {action}")
         else:
-            # Choose the best known action (highest Q-value) with probability (1 - ε) → EXPLOITATION
-            return np.argmax(self.qtable.loc[s])  # argmax_a Q(s, a)
+            action = np.argmax(self.qtable.loc[s].astype(float))
+            logging.debug(f"Exploitation: Choosing best action {action}")
+
+        return action
