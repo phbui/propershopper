@@ -58,6 +58,7 @@ class Agent_QLearn(Agent_Class):
         # Player position
         x, y = player["position"]
         next_x, next_y = next_player["position"]
+        exit_x, exit_y = 0.5, 15.5
 
         # Carrot shelf position (goal)
         carrot_shelf_x, carrot_shelf_y = 11.5, 17.5
@@ -91,7 +92,12 @@ class Agent_QLearn(Agent_Class):
         if self.ACTION_COMMANDS[action_index] == "INTERACT" and next_player["holding_food"] is None:
             reward -= 5  # Discourage unnecessary interactions
 
-        reward = math.trunc(reward * 1e9) / 1e9
+        current_exit_distance = abs(x - exit_x) + abs(y - exit_y)
+
+        if current_exit_distance < 2:  
+            reward -= 50  
+
+        reward = math.trunc(reward * 1e3) / 1e3
         logging.debug(f'Reward: {reward}')
 
         return reward

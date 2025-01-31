@@ -69,10 +69,12 @@ class QLAgent:
         distance = abs(player_x - carrot_shelf_x) + abs(player_y - carrot_shelf_y)
         near_shelf = 1 if distance <= 2 else 0  # Binary indicator (near/far)
 
+        holding_item = 1 if holding_food is not None else 0
+
         has_carrot = 1 if holding_food == "carrot" else 0
 
         # Discrete state representation
-        return (player_x, player_y, direction, near_shelf, has_carrot)
+        return (player_x, player_y, direction, near_shelf, holding_item, has_carrot)
         
     def learning(self, action, rwd, state, next_state, action_name):
         """
