@@ -7,7 +7,7 @@ import logging
 
 class QLAgent:
     # here are some default parameters, you can use different ones
-    def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.1, mini_epsilon=0.01, decay=0.999, qtable_path="qtable.json"):
+    def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.5, mini_epsilon=0.05, decay=0.999, qtable_path="qtable.json"):
         self.action_space = action_space 
         self.alpha = alpha               # learning rate
         self.gamma = gamma               # discount factor  
@@ -74,7 +74,7 @@ class QLAgent:
         # Discrete state representation
         return (player_x, player_y, direction, near_shelf, has_carrot)
         
-    def learning(self, action, rwd, state, next_state):
+    def learning(self, action, rwd, state, next_state, action_name):
         """
         Update the Q-table using the Q-learning update rule:
         
@@ -99,7 +99,7 @@ class QLAgent:
         s = str(tuple(self.trans(state)))       
         s_prime = str(tuple(self.trans(next_state)))
 
-        logging.debug(f"Update - State: {s[:50]} | Next State: {s_prime[:50]} | Action: {action} | Reward: {rwd}")
+        logging.info(f"State: {s} | Next State: {s_prime} | Action: {action_name} | Reward: {rwd}")
 
         # Ensure Q-table includes both states
         if s not in self.qtable.index:

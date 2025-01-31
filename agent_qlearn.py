@@ -48,7 +48,7 @@ class Agent_QLearn(Agent_Class):
     def update(self, action_index, reward, state, next_state):
         """Update Q-table after taking an action."""
         action_index = action_index  # Convert action to index
-        self.agent.learning(action_index, reward, state, next_state)
+        self.agent.learning(action_index, reward, state, next_state, self.ACTION_COMMANDS[action_index])
 
     def get_reward(self, state, next_state, action_index):
         """Calculate reward based on Manhattan distance, interactions, and rule violations."""
@@ -65,7 +65,7 @@ class Agent_QLearn(Agent_Class):
         current_distance = abs(next_x - carrot_shelf_x) + abs(next_y - carrot_shelf_y)
 
         # Directly assign negative reward based on current distance
-        reward = -current_distance * 0.5  # Positive if moving closer, negative if moving away
+        reward = -current_distance
 
         # Negative reward for staying in the same position (unless very close to the goal)
         if (x, y) == (next_x, next_y):
