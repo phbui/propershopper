@@ -20,11 +20,6 @@ if __name__ == "__main__":
     sock_game = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock_game.connect((HOST, PORT))
 
-    # agent_astar = Agent_AStar(sock_game, 0)
-    # agent_astar.send_action("NOP")
-    # agent_astar.run()
-
-    logging.debug("Starting Agent_QLearning")
-    agent_qlearn = Agent_QLearn(sock_game, 0)
-    agent_qlearn.run()
-
+    agent_astar = Agent_AStar(sock_game, 0)
+    agent_astar.send_action("NOP")
+    agent_astar.run()

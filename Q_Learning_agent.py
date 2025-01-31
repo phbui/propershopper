@@ -59,24 +59,20 @@ class QLAgent:
         holding_food = player["holding_food"]
         
         # Convert position to discrete grid points
-        player_x = round(player_x / granularity) * granularity
-        player_y = round(player_y / granularity) * granularity
+        player_x = round(round(player_x / granularity) * granularity, 2)
+        player_y = round(round(player_y / granularity) * granularity, 2)
 
         # Carrot shelf position (known in advance)
         carrot_shelf_x, carrot_shelf_y = 11.5, 17.5
 
         # Compute Manhattan distance to carrot shelf
         distance = abs(player_x - carrot_shelf_x) + abs(player_y - carrot_shelf_y)
-        near_shelf = 1 if distance <= 3 else 0  # Binary indicator (near/far)
+        near_shelf = 1 if distance <= 2 else 0  # Binary indicator (near/far)
 
-        # Facing the correct direction (North=0, South=1)
-        correct_facing = 1 if direction in [0, 1] else 0
-
-        # Holding carrot (1) or not (0)
         has_carrot = 1 if holding_food == "carrot" else 0
 
         # Discrete state representation
-        return (player_x, player_y, direction, near_shelf, correct_facing, has_carrot)
+        return (player_x, player_y, direction, near_shelf, has_carrot)
         
     def learning(self, action, rwd, state, next_state):
         """
@@ -103,7 +99,7 @@ class QLAgent:
         s = str(tuple(self.trans(state)))       
         s_prime = str(tuple(self.trans(next_state)))
 
-        logging.info(f"Learning Update - State: {s[:50]} | Next State: {s_prime[:50]} | Action: {action} | Reward: {rwd}")
+        logging.debug(f"Update - State: {s[:50]} | Next State: {s_prime[:50]} | Action: {action} | Reward: {rwd}")
 
         # Ensure Q-table includes both states
         if s not in self.qtable.index:

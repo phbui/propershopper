@@ -16,13 +16,15 @@ class Agent_QLearn(Agent_Class):
         self.done = False
 
     def translate_command(self, state, command):
+        direction = state["players"][0]["direction"]
+
         if command.startswith("TURN_"):
-            return [command.replace("TURN_", "")]  # Remove "TURN_" prefix and send once
+            new_command = command.replace("TURN_", "")
+            if (self.DIRECTION_MAP[direction] != new_command):
+                return [command.replace("TURN_", "")]  # Remove "TURN_" prefix and send once
         
         elif command.startswith("MOVE_"):
-            direction = state["players"][0]["direction"]
             new_command = command.replace("MOVE_", "")
-
             if (self.DIRECTION_MAP[direction] == new_command):
                 return [new_command]
             else:
@@ -33,11 +35,14 @@ class Agent_QLearn(Agent_Class):
 
     def act(self, state):
         """Choose an action and send it to the environment."""
-        action_index = self.agent.choose_action(state)
-        action_commands = self.translate_command(state, self.ACTION_COMMANDS[action_index])
-        result = None
-        for action in action_commands:
-            result = self.send_action(action)  # Send each translated action separately
+        action_index = self.agent.choose_action(state["observation"])
+        action_commands = self.translate_command(state["observation"], self.ACTION_COMMANDS[action_index])
+        result = state
+
+        if action_commands is not None:
+            for action in action_commands:
+                result = self.send_action(action)  # Send each translated action separately
+
         return action_index, result
 
     def update(self, action_index, reward, state, next_state):
@@ -60,26 +65,26 @@ class Agent_QLearn(Agent_Class):
         current_distance = abs(next_x - carrot_shelf_x) + abs(next_y - carrot_shelf_y)
 
         # Directly assign negative reward based on current distance
-        reward = -current_distance * 0.1  # Positive if moving closer, negative if moving away
+        reward = -current_distance * 0.5  # Positive if moving closer, negative if moving away
 
         # Negative reward for staying in the same position (unless very close to the goal)
         if (x, y) == (next_x, next_y):
             if current_distance > 2:  # If not near goal, punish staying still
-                reward -= 2  
+                reward -= 1  
             else:  # If near goal, staying is neutral
                 reward += 0  
 
-        # Negative reward for rule violations\
+        # Negative reward for rule violations
         violations = state["violations"]
         if len(violations) > 0:
-            if any("carrot" in item for item in violations):
+            if any("carrot" in item for item in violations) and current_distance == 0:
                 reward += 10 * len(state["violations"])
             else:
                 reward -= 5 * len(state["violations"])  # Each violation carries a penalty
 
         # Reward for successfully picking up a carrot
         if player["holding_food"] is None and next_player["holding_food"] == "carrot":
-            reward += 10  # High reward for goal completion
+            reward += 100  # High reward for goal completion
             self.done = True
 
         # Penalty for incorrect interaction
@@ -96,16 +101,19 @@ class Agent_QLearn(Agent_Class):
         self.done = False
         self.send_action("RESET")
 
-    def run(self, episodes=100, save_interval=10):
+    def run(self, episodes=100):
         for episode in range(episodes):  # Number of training episodes
             self.restart_game()  # Reset environment at the start of each episode
             state = self.send_action("NOP")
 
+            counter = 0
+
             while not self.done:
-                action_index, next_state = self.act(state["observation"])  # Choose action
+                counter += 1
+                action_index, next_state = self.act(state)  # Choose action
                 reward = self.get_reward(state, next_state, action_index)
                 self.update(action_index, reward, state["observation"], next_state["observation"])  # Q-learning update
                 state = next_state 
 
-            logging.info(f"Finished episode {episode}, saving...")
+            logging.debug(f"Finished episode {episode} after {counter} timesteps, saving...")
             self.agent.save_qtable()
