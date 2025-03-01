@@ -46,21 +46,20 @@ class QLAgent:
             raise ValueError("Unknown subtask type")
 
     def trans(self, state, granularity=0.5):
-        """Transform the raw state into a learnable Q-table state."""
+        """Transform the raw state into a string-based Q-table state key."""
         agent_pos = state['observation']['players'][0]['position']
-        basket_pos = [3.5, 18.5]  # Fixed basket location
+        basket_pos = [3.5, 18.5]  # Assume basket is at a fixed location
 
-        # Identify the target shelf position
+        # Get the target shelf position
         shopping_list = state['observation']['players'][0]['shopping_list']
-        shelf_pos = None
+        shelf_pos = (0.0, 0.0)  # Default shelf position if not found
+
         if shopping_list:
-            target_item = shopping_list[0]
+            target_item = shopping_list[0]  # Focus on the first item in the list
             for shelf in state['observation']['shelves']:
                 if shelf['food_name'] == target_item:
                     shelf_pos = shelf['position']
                     break
-
-        shelf_pos = shelf_pos or (0, 0)  # Default shelf position if none found
 
         # Discretize positions
         agent_pos = (round(agent_pos[0] / granularity) * granularity, round(agent_pos[1] / granularity) * granularity)
@@ -70,12 +69,14 @@ class QLAgent:
         holding_item = 1 if state['observation']['players'][0]['holding_food'] else 0
         remaining_items = len(shopping_list)
 
-        transformed_state = (agent_pos, shelf_pos, basket_pos, holding_item, remaining_items)
-        logging.info(f"State Transformation | Raw: {state['observation']['players'][0]['position']} | Transformed: {transformed_state}")
-        return transformed_state
+        # Convert state_key to a string (hashable)
+        state_key = f"{agent_pos}_{shelf_pos}_{basket_pos}_{holding_item}_{remaining_items}"
+
+        logging.info(f"State Transformation | Raw: {state['observation']['players'][0]['position']} | Transformed: {state_key}")
+        return state_key  # Return a string representation
 
     def learning(self, action, reward, state, next_state, subtask):
-        """Q-learning update rule."""
+        """Q-learning update rule with string-based indexing."""
         qtable = self.get_qtable(subtask)
         state_key = self.trans(state)
         next_state_key = self.trans(next_state)
@@ -86,35 +87,32 @@ class QLAgent:
         if next_state_key not in qtable.index:
             qtable.loc[next_state_key] = np.zeros(self.action_space)
 
+        # Q-learning update rule
         max_future_q = np.max(qtable.loc[next_state_key])
         current_q = qtable.loc[state_key, action]
         qtable.loc[state_key, action] += self.alpha * (reward + self.gamma * max_future_q - current_q)
 
+        # Save the updated Q-table
         self.save_qtable(qtable, subtask)
-
-        logging.info(f"\nLearning Update | Subtask: {subtask} | Action: {action} | Reward: {reward}")
-        logging.info(f"Q-Value Update | State: {state_key} | Old Q: {current_q:.4f} | New Q: {qtable.loc[state_key, action]:.4f}\n")
 
     def choose_action(self, state, subtask):
         """Select an action using ε-greedy policy."""
         qtable = self.get_qtable(subtask)
         state_key = self.trans(state)
 
+        # Ensure the key exists in the Q-table before accessing it
         if state_key not in qtable.index:
-            qtable.loc[state_key] = np.zeros(self.action_space)
+            qtable.loc[state_key] = np.zeros(self.action_space)  # Initialize new row
 
-        # Exploration vs Exploitation
+        # Exploration vs. Exploitation
         if np.random.rand() < self.epsilon:
             action = np.random.choice(self.action_space)  # Explore
-            logging.info(f"Choosing Random Action (Exploration) | Subtask: {subtask} | Action: {action}")
         else:
             action = qtable.loc[state_key].idxmax()  # Exploit
-            logging.info(f"Choosing Best Action (Exploitation) | Subtask: {subtask} | Action: {action}")
 
-        # Decay epsilon over time
+        # Decay epsilon
         if self.epsilon > self.mini_epsilon:
             self.epsilon *= self.decay
-            logging.info(f"Epsilon Decay | New Epsilon: {self.epsilon:.6f}")
 
         return action
 
