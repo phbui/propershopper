@@ -10,6 +10,7 @@ class QLAgent:
         self.alpha = alpha  # Learning rate
         self.gamma = gamma  # Discount factor
         self.epsilon = epsilon  # Exploration-exploitation balance
+        self.og_epsilon = epsilon
         self.mini_epsilon = mini_epsilon  # Minimum exploration probability
         self.decay = decay  # Epsilon decay over time
 
@@ -27,6 +28,9 @@ class QLAgent:
         logging.info("\n--- Q-Learning Agent Initialized ---\n")
         logging.info(f"Action Space: {self.action_space} | Alpha: {self.alpha} | Gamma: {self.gamma} | Epsilon: {self.epsilon} | Decay: {self.decay}\n")
 
+    def reset_epsilon(self):
+        self.epsilon = self.og_epsilon
+
     def get_qtable(self, subtask):
         if subtask == "navigate_basket":
             return self.qtable_navigate_basket
@@ -38,7 +42,6 @@ class QLAgent:
             return self.qtable_pick_place
         else:
             raise ValueError(f"Unknown subtask type: {subtask}")
-
 
     def trans(self, state, granularity=0.5):
         agent_pos = state['observation']['players'][0]['position']

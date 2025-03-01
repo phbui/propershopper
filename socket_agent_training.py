@@ -205,6 +205,7 @@ class SupermarketTrainer:
         return False
 
     def execute_subtask(self, subtask, target_item):
+        self.agent.reset_epsilon()
         state = self.send_action("NOP")  # Initial state retrieval
         logging.info(f"\n--- Executing Subtask: {subtask} | Target Item: {target_item if target_item else 'N/A'} ---\n")
 
