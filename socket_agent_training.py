@@ -24,13 +24,12 @@ logging.basicConfig(
 )
 
 class SupermarketTrainer:
-    def __init__(self, host='127.0.0.1', port=9000, episodes=100, episode_length=1000):
+    def __init__(self, host='127.0.0.1', port=9000, episodes=100):
         self.action_commands = ['NORTH', 'SOUTH', 'EAST', 'WEST', 'INTERACT']
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, port))
         self.agent = QLAgent(action_space=len(self.action_commands) - 1)
         self.episodes = episodes
-        self.episode_length = episode_length
 
     def distance(self, pos1, pos2):
         return np.linalg.norm(np.array(pos1) - np.array(pos2))
@@ -60,7 +59,7 @@ class SupermarketTrainer:
             -10 if "ObjectCollisionNorm" in violations else 0
         ])
 
-        logging.info(f"\n--- Subtask: {subtask} ---\nPosition: {agent_pos} | Holding: {holding_food} | Basket: {has_basket} | Violations: {violations} | Exit Distance: {exit_distance}\n")
+        logging.debug(f"\n--- Subtask: {subtask} ---\nPosition: {agent_pos} | Holding: {holding_food} | Basket: {has_basket} | Violations: {violations} | Exit Distance: {exit_distance}\n")
 
         if subtask == "navigate_basket":
             basket_pos = [3.5, 18.5]
@@ -68,7 +67,7 @@ class SupermarketTrainer:
                      (10 if self.distance(agent_pos, basket_pos) < 1.0 else 0) + \
                      (10 if has_basket and not (len(prev_baskets) > 0 and prev_baskets[0]['owner'] == 0) else 0) + \
                      norm_penalty + exit_penalty + cart_penalty - (1 if agent_pos == prev_pos else 0)
-            logging.info(f"Navigate Basket | Reward Breakdown: {reward} (Norm: {norm_penalty}, Exit: {exit_penalty}, Cart: {cart_penalty})")
+            logging.debug(f"Navigate Basket | Reward Breakdown: {reward} (Norm: {norm_penalty}, Exit: {exit_penalty}, Cart: {cart_penalty})")
             return reward
 
         if subtask == "navigate_shelf" and target_item:
@@ -82,7 +81,7 @@ class SupermarketTrainer:
             reward = (5 if self.distance(agent_pos, shelf_pos) < self.distance(prev_pos, shelf_pos) else 0) + \
                      (10 if self.distance(agent_pos, shelf_pos) < 0.6 else 0) + \
                      norm_penalty + exit_penalty + cart_penalty - (1 if agent_pos == prev_pos else 0)
-            logging.info(f"Navigate Shelf | Item: {target_item} | Reward Breakdown: {reward}")
+            logging.debug(f"Navigate Shelf | Item: {target_item} | Reward Breakdown: {reward}")
             return reward
 
         if subtask == "pick_place" and target_item:
@@ -90,7 +89,7 @@ class SupermarketTrainer:
                      (5 if holding_food and holding_food != target_item else 0) + \
                      (15 if len(current_basket_contents) > len(prev_basket_contents) else 0) + \
                      norm_penalty + exit_penalty + cart_penalty
-            logging.info(f"Pick & Place | Item: {target_item} | Reward Breakdown: {reward}")
+            logging.debug(f"Pick & Place | Item: {target_item} | Reward Breakdown: {reward}")
             return reward
 
         return norm_penalty + exit_penalty + cart_penalty
@@ -164,7 +163,7 @@ class SupermarketTrainer:
         return False
 
 
-    def execute_subtask(self, subtask, target_item=None):
+    def execute_subtask(self, subtask, target_item):
         """
         Execute a subtask until completion conditions are met.
         Handles cases where the agent moves away from a shelf and must return.
@@ -219,16 +218,16 @@ class SupermarketTrainer:
 
             logging.info(f"\n--- EPISODE {episode + 1}/{self.episodes} START ---\n")
 
-            self.execute_subtask("navigate_basket", self.episode_length)
+            self.execute_subtask("navigate_basket", None)
 
             for item in ordered_shelves:
                 logging.info(f"\nNavigating to Shelf for Item: {item}\n")
-                self.execute_subtask("navigate_shelf", self.episode_length, item)
+                self.execute_subtask("navigate_shelf", item)
 
                 logging.info(f"\nPicking and Placing Item: {item}\n")
-                self.execute_subtask("pick_place", self.episode_length, item)
+                self.execute_subtask("pick_place", item)
 
-            self.execute_subtask("navigate_basket", self.episode_length)
+            self.execute_subtask("navigate_basket", None)
             self.send_action("INTERACT")
 
             logging.info(f"\n--- EPISODE {episode + 1}/{self.episodes} COMPLETE ---\n")
