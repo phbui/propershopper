@@ -153,7 +153,7 @@ class SupermarketTrainer:
 
         return {"observation": {"players": [{}]}, "gameOver": True}  # Fallback state
 
-    def check_subtask_completion(self, subtask, state, target_item=None):
+    def check_subtask_completion(self, subtask, state, target_item=None, threshold_enter=1.0, threshold_leave=2.0):
         agent_pos = state['observation']['players'][0]['position']
         holding_food = state['observation']['players'][0]['holding_food']
         baskets = state['observation']['baskets']
@@ -161,7 +161,7 @@ class SupermarketTrainer:
         current_basket_contents = baskets[0]['contents'] if has_basket else []
 
         if subtask == "navigate_basket":
-            if self.distance(agent_pos, basket_pos) < 0.6:
+            if self.distance(agent_pos, basket_pos) <= threshold_enter:
                 logging.info(f"Subtask '{subtask}' completed: Arrived at basket.")
                 return True
 
@@ -170,7 +170,7 @@ class SupermarketTrainer:
             if has_basket:
                 logging.info(f"Subtask '{subtask}' completed: Picked up basket.")
                 return True
-            if self.distance(agent_pos, basket_pos) > 2:
+            if self.distance(agent_pos, basket_pos) > threshold_leave:
                 logging.warning(f"Agent moved away from basket! Returning to 'navigate_basket'.")
                 return "return_to_basket"
 
@@ -178,7 +178,7 @@ class SupermarketTrainer:
             for shelf in state['observation']['shelves']:
                 if shelf['food_name'] == target_item:
                     shelf_pos = shelf['position']
-                    if self.distance(agent_pos, shelf_pos) < 0.6:
+                    if self.distance(agent_pos, shelf_pos) <= threshold_enter:
                         logging.info(f"Subtask '{subtask}' completed: Reached shelf for {target_item}.")
                         return True
 
@@ -189,7 +189,7 @@ class SupermarketTrainer:
             for shelf in state['observation']['shelves']:
                 if shelf['food_name'] == target_item:
                     shelf_pos = shelf['position']
-                    if self.distance(agent_pos, shelf_pos) > 2:
+                    if self.distance(agent_pos, shelf_pos) > threshold_leave:
                         logging.warning(f"Agent moved away from {target_item}'s shelf! Returning to 'navigate_shelf'.")
                         return "return_to_shelf"
 

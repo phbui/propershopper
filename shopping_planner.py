@@ -11,7 +11,6 @@ class ShoppingPlanner(Agent):
         self.load_shopping_orders()
 
     def load_shopping_orders(self):
-        """Load cached shopping orders from file."""
         if os.path.exists(SHOPPING_ORDER_FILE):
             with open(SHOPPING_ORDER_FILE, "r") as f:
                 self.shopping_orders = json.load(f)
@@ -20,17 +19,14 @@ class ShoppingPlanner(Agent):
             self.shopping_orders = {}
 
     def save_shopping_orders(self):
-        """Save computed shopping orders to a file."""
         with open(SHOPPING_ORDER_FILE, "w") as f:
             json.dump(self.shopping_orders, f, indent=4)
         logging.info("Saved updated shopping orders.")
 
     def get_order_key(self, shopping_list):
-        """Generate a unique key by sorting the shopping list alphabetically."""
         return ",".join(sorted(shopping_list))
 
     def compute_shopping_order(self, shopping_list):
-        """Compute the optimal path visiting all shelves using A* with fallback adjustments on shelf positions."""
         order_key = self.get_order_key(shopping_list)
 
         if order_key in self.shopping_orders:

@@ -26,7 +26,6 @@ class QLAgent:
         logging.info(f"Action Space: {self.action_space} | Alpha: {self.alpha} | Gamma: {self.gamma} | Epsilon: {self.epsilon} | Decay: {self.decay}\n")
 
     def get_qtable(self, subtask):
-        """Returns the appropriate Q-table for a given subtask."""
         if subtask == "navigate_basket":
             return self.qtable_navigate_basket
         elif subtask == "navigate_shelf":
@@ -37,7 +36,6 @@ class QLAgent:
             raise ValueError("Unknown subtask type")
 
     def trans(self, state, granularity=0.5):
-        """Transform the raw state into a string-based Q-table state key."""
         agent_pos = state['observation']['players'][0]['position']
         basket_pos = [3.5, 18.5]  # Assume basket is at a fixed location
 
@@ -67,7 +65,6 @@ class QLAgent:
         return state_key  # Return a string representation
 
     def learning(self, action, reward, state, next_state, subtask):
-        """Q-learning update rule with string-based indexing."""
         qtable = self.get_qtable(subtask)
         state_key = self.trans(state)
         next_state_key = self.trans(next_state)
@@ -87,7 +84,6 @@ class QLAgent:
         self.save_qtable(qtable, subtask)
 
     def choose_action(self, state, subtask):
-        """Select an action using ε-greedy policy."""
         qtable = self.get_qtable(subtask)
         state_key = self.trans(state)
 
@@ -108,13 +104,11 @@ class QLAgent:
         return action
 
     def save_qtable(self, qtable, subtask):
-        """Save the Q-table to a JSON file."""
         filepath = os.path.join(self.qtable_dir, f"{subtask}.json")
         qtable.to_json(filepath)
         logging.debug(f"Saved Q-table: {filepath}")
 
     def load_qtable(self, subtask):
-        """Load the Q-table from a JSON file if it exists, else create a new one."""
         filepath = os.path.join(self.qtable_dir, f"{subtask}.json")
         if os.path.exists(filepath):
             logging.info(f"Loading Q-table: {filepath}")
