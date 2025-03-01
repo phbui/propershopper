@@ -567,7 +567,7 @@ class Game:
         if basket is not None:
             basket.set_direction(direction)
 
-        logging.info(f"{player.position[0], player.position[1]}")
+        logging.debug(f"{player.position[0], player.position[1]}")
         self.move_unit(player, [current_speed * x1, current_speed * y1])
 
     # Reading in map
