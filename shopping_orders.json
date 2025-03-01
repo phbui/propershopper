@@ -1,392 +1,656 @@
 {
-    "cucumber,milk,raspberry,strawberry milk,swiss cheese": [
+    "ham": [
         [
-            7.5,
-            13.5
-        ],
-        [
-            9.5,
-            22.0
-        ],
-        [
-            13.5,
-            6.0
-        ],
-        [
-            13.5,
-            2.0
-        ],
-        [
-            5.5,
-            2.0
+            "ham",
+            [
+                13.5,
+                9.25
+            ]
         ]
     ],
-    "avocado,cheese wheel,lettuce,onion,steak,strawberry,swiss cheese": [
+    "chicken,chocolate milk,cucumber,leek,milk,steak": [
         [
-            7.5,
-            13.5
+            "leek",
+            [
+                7.5,
+                17.5
+            ]
         ],
         [
-            9.5,
-            14.5
+            "cucumber",
+            [
+                9.5,
+                22.0
+            ]
         ],
         [
-            13.5,
-            18.0
+            "milk",
+            [
+                5.5,
+                2.0
+            ]
         ],
         [
-            13.5,
-            22.0
+            "chocolate milk",
+            [
+                9.5,
+                2.0
+            ]
         ],
         [
-            5.5,
-            22.0
+            "steak",
+            [
+                7.5,
+                10.0
+            ]
         ],
         [
-            11.5,
-            6.0
-        ],
-        [
-            7.5,
-            10.0
+            "chicken",
+            [
+                11.5,
+                10.25
+            ]
         ]
     ],
-    "brie cheese,leek,lettuce": [
+    "avocado,brie cheese,cheese wheel,chicken,chocolate milk,swiss cheese": [
         [
-            5.5,
-            13.5
+            "brie cheese",
+            [
+                5.5,
+                13.5
+            ]
         ],
         [
-            7.5,
-            18.0
+            "swiss cheese",
+            [
+                7.5,
+                14.5
+            ]
         ],
         [
-            13.5,
-            18.0
+            "cheese wheel",
+            [
+                9.5,
+                14.5
+            ]
+        ],
+        [
+            "avocado",
+            [
+                5.5,
+                22.0
+            ]
+        ],
+        [
+            "chocolate milk",
+            [
+                9.5,
+                2.0
+            ]
+        ],
+        [
+            "chicken",
+            [
+                11.5,
+                10.0
+            ]
         ]
     ],
-    "banana,broccoli,fresh fish,garlic,lettuce,prepared foods,raspberry,red bell pepper,steak": [
+    "carrot,garlic,oranges": [
         [
-            5.5,
-            17.5
+            "garlic",
+            [
+                5.5,
+                17.5
+            ]
         ],
         [
-            9.5,
-            18.0
+            "carrot",
+            [
+                11.5,
+                18.0
+            ]
         ],
         [
-            13.5,
-            18.0
-        ],
-        [
-            7.5,
-            22.0
-        ],
-        [
-            9.5,
-            6.5
-        ],
-        [
-            13.5,
-            6.5
-        ],
-        [
-            7.5,
-            10.0
+            "oranges",
+            [
+                7.5,
+                6.5
+            ]
         ]
     ],
-    "avocado,carrot,fresh fish,garlic,milk,prepared foods,steak,swiss cheese": [
+    "ham,red bell pepper": [
         [
-            5.5,
-            17.5
+            "red bell pepper",
+            [
+                9.5,
+                17.5
+            ]
         ],
         [
-            5.5,
-            22.0
-        ],
-        [
-            11.5,
-            18.0
-        ],
-        [
-            7.5,
-            14.0
-        ],
-        [
-            7.5,
-            10.0
-        ],
-        [
-            5.5,
-            2.0
+            "ham",
+            [
+                13.5,
+                10.0
+            ]
         ]
     ],
-    "banana,broccoli,cheese wheel,chocolate milk,milk,strawberry milk": [
+    "carrot,fresh fish,ham,leek,steak,yellow bell pepper": [
         [
-            9.5,
-            13.5
+            "leek",
+            [
+                7.5,
+                17.5
+            ]
         ],
         [
-            7.5,
-            22.0
+            "carrot",
+            [
+                11.5,
+                18.0
+            ]
         ],
         [
-            5.5,
-            2.0
+            "yellow bell pepper",
+            [
+                11.5,
+                22.0
+            ]
         ],
         [
-            9.5,
-            2.0
+            "fresh fish",
+            [
+                18.25,
+                9.75
+            ]
         ],
         [
-            13.5,
-            2.0
+            "ham",
+            [
+                13.5,
+                10.0
+            ]
         ],
         [
-            9.5,
-            6.0
+            "steak",
+            [
+                7.5,
+                10.25
+            ]
         ]
     ],
-    "fresh fish,garlic,leek,lettuce,oranges,swiss cheese": [
+    "apples,banana,cheese wheel,milk,steak,strawberry milk": [
         [
-            5.5,
-            17.5
+            "cheese wheel",
+            [
+                9.5,
+                13.5
+            ]
         ],
         [
-            7.5,
-            18.0
+            "steak",
+            [
+                7.5,
+                10.0
+            ]
         ],
         [
-            13.5,
-            18.0
+            "apples",
+            [
+                5.5,
+                6.0
+            ]
         ],
         [
-            7.5,
-            14.0
+            "milk",
+            [
+                5.5,
+                2.0
+            ]
         ],
         [
-            7.5,
-            6.5
+            "strawberry milk",
+            [
+                13.5,
+                2.0
+            ]
+        ],
+        [
+            "banana",
+            [
+                9.5,
+                6.0
+            ]
         ]
     ],
-    "cheese wheel,cucumber,lettuce,raspberry,steak,yellow bell pepper": [
+    "apples,broccoli,garlic,strawberry milk": [
         [
-            9.5,
-            13.5
+            "garlic",
+            [
+                5.5,
+                17.5
+            ]
         ],
         [
-            7.5,
-            10.0
+            "broccoli",
+            [
+                7.5,
+                22.0
+            ]
         ],
         [
-            13.5,
-            6.0
+            "apples",
+            [
+                5.5,
+                6.5
+            ]
         ],
         [
-            13.5,
-            18.0
-        ],
-        [
-            11.5,
-            22.0
-        ],
-        [
-            9.5,
-            22.0
+            "strawberry milk",
+            [
+                13.5,
+                2.0
+            ]
         ]
     ],
-    "brie cheese,chocolate milk,fresh fish,lettuce,onion,red bell pepper": [
+    "chocolate milk": [
         [
-            5.5,
-            13.5
-        ],
-        [
-            9.5,
-            18.0
-        ],
-        [
-            13.5,
-            18.0
-        ],
-        [
-            13.5,
-            22.0
-        ],
-        [
-            9.5,
-            2.0
+            "chocolate milk",
+            [
+                9.5,
+                1.5
+            ]
         ]
     ],
-    "milk,prepared foods,sausage,swiss cheese,yellow bell pepper": [
+    "broccoli,carrot,prepared foods,steak": [
         [
-            7.5,
-            13.5
+            "carrot",
+            [
+                11.5,
+                17.5
+            ]
         ],
         [
-            5.5,
-            10.0
+            "broccoli",
+            [
+                7.5,
+                22.0
+            ]
         ],
         [
-            5.5,
-            2.0
+            "prepared foods",
+            [
+                18.25,
+                3.75
+            ]
         ],
         [
-            11.5,
-            22.0
+            "steak",
+            [
+                7.5,
+                10.0
+            ]
         ]
     ],
-    "chocolate milk,fresh fish,garlic,milk,steak,swiss cheese": [
+    "apples,avocado,cheese wheel,cucumber,ham,sausage": [
         [
-            5.5,
-            17.5
+            "cheese wheel",
+            [
+                9.5,
+                13.5
+            ]
         ],
         [
-            7.5,
-            14.0
+            "sausage",
+            [
+                5.5,
+                10.0
+            ]
         ],
         [
-            7.5,
-            10.0
+            "apples",
+            [
+                5.5,
+                6.0
+            ]
         ],
         [
-            5.5,
-            2.0
+            "ham",
+            [
+                13.5,
+                10.0
+            ]
         ],
         [
-            9.5,
-            2.0
+            "cucumber",
+            [
+                9.5,
+                22.0
+            ]
+        ],
+        [
+            "avocado",
+            [
+                5.5,
+                22.0
+            ]
         ]
     ],
-    "onion": [
+    "avocado,brie cheese,carrot,milk,sausage,strawberry": [
         [
-            13.5,
-            21.5
+            "brie cheese",
+            [
+                5.5,
+                13.5
+            ]
+        ],
+        [
+            "sausage",
+            [
+                5.5,
+                10.0
+            ]
+        ],
+        [
+            "milk",
+            [
+                5.5,
+                2.0
+            ]
+        ],
+        [
+            "strawberry",
+            [
+                11.5,
+                6.0
+            ]
+        ],
+        [
+            "carrot",
+            [
+                11.5,
+                18.0
+            ]
+        ],
+        [
+            "avocado",
+            [
+                5.5,
+                22.0
+            ]
         ]
     ],
-    "avocado,chicken,chocolate milk,leek,onion,prepared foods": [
+    "brie cheese,chicken,cucumber,prepared foods,strawberry,yellow bell pepper": [
         [
-            7.5,
-            17.5
+            "brie cheese",
+            [
+                5.5,
+                13.5
+            ]
         ],
         [
-            5.5,
-            22.0
+            "chicken",
+            [
+                11.5,
+                10.0
+            ]
         ],
         [
-            13.5,
-            22.0
+            "strawberry",
+            [
+                11.5,
+                6.0
+            ]
         ],
         [
-            9.5,
-            2.0
+            "prepared foods",
+            [
+                18.25,
+                3.75
+            ]
         ],
         [
-            11.5,
-            10.0
+            "yellow bell pepper",
+            [
+                11.5,
+                22.0
+            ]
+        ],
+        [
+            "cucumber",
+            [
+                9.5,
+                22.0
+            ]
         ]
     ],
-    "banana,cheese wheel,raspberry,sausage,strawberry milk,swiss cheese": [
+    "chocolate milk,cucumber,leek,onion,oranges,yellow bell pepper": [
         [
-            7.5,
-            13.5
+            "leek",
+            [
+                7.5,
+                17.5
+            ]
         ],
         [
-            9.5,
-            14.5
+            "cucumber",
+            [
+                9.5,
+                22.0
+            ]
         ],
         [
-            13.5,
-            6.0
+            "yellow bell pepper",
+            [
+                11.5,
+                22.0
+            ]
         ],
         [
-            13.5,
-            2.0
+            "onion",
+            [
+                13.5,
+                22.0
+            ]
         ],
         [
-            9.5,
-            6.0
+            "oranges",
+            [
+                7.5,
+                6.5
+            ]
         ],
         [
-            5.5,
-            10.0
+            "chocolate milk",
+            [
+                9.5,
+                2.0
+            ]
         ]
     ],
-    "banana,cheese wheel,chocolate milk,oranges,steak,yellow bell pepper": [
+    "cucumber,fresh fish,yellow bell pepper": [
         [
-            9.5,
-            13.5
+            "cucumber",
+            [
+                9.5,
+                21.5
+            ]
         ],
         [
-            7.5,
-            10.0
+            "yellow bell pepper",
+            [
+                11.5,
+                22.0
+            ]
         ],
         [
-            7.5,
-            6.0
-        ],
-        [
-            9.5,
-            2.0
-        ],
-        [
-            9.5,
-            6.0
-        ],
-        [
-            11.5,
-            22.0
+            "fresh fish",
+            [
+                18.25,
+                9.75
+            ]
         ]
     ],
-    "chicken,chocolate milk,fresh fish,milk,steak,strawberry milk": [
+    "apples,broccoli,leek,milk,strawberry,swiss cheese": [
         [
-            5.5,
-            1.5
+            "swiss cheese",
+            [
+                7.5,
+                13.5
+            ]
         ],
         [
-            9.5,
-            2.0
+            "leek",
+            [
+                7.5,
+                18.0
+            ]
         ],
         [
-            13.5,
-            2.0
+            "broccoli",
+            [
+                7.5,
+                22.0
+            ]
         ],
         [
-            18.25,
-            9.75
+            "apples",
+            [
+                5.5,
+                6.0
+            ]
         ],
         [
-            11.5,
-            10.0
+            "milk",
+            [
+                5.5,
+                2.0
+            ]
         ],
         [
-            7.5,
-            10.5
+            "strawberry",
+            [
+                11.5,
+                6.0
+            ]
         ]
     ],
-    "banana,cheese wheel,chocolate milk,cucumber,fresh fish,milk": [
+    "broccoli,cucumber,milk,oranges,prepared foods,swiss cheese": [
         [
-            9.5,
-            13.5
+            "swiss cheese",
+            [
+                7.5,
+                13.5
+            ]
         ],
         [
-            18.25,
-            9.75
+            "broccoli",
+            [
+                7.5,
+                22.0
+            ]
         ],
         [
-            9.5,
-            2.0
+            "cucumber",
+            [
+                9.5,
+                22.0
+            ]
         ],
         [
-            5.5,
-            2.0
+            "oranges",
+            [
+                7.5,
+                6.0
+            ]
         ],
         [
-            9.5,
-            6.0
+            "milk",
+            [
+                5.5,
+                2.0
+            ]
         ],
         [
-            9.5,
-            22.0
+            "prepared foods",
+            [
+                18.25,
+                3.75
+            ]
+        ]
+    ],
+    "cheese wheel,chicken,fresh fish,yellow bell pepper": [
+        [
+            "cheese wheel",
+            [
+                9.5,
+                13.5
+            ]
+        ],
+        [
+            "fresh fish",
+            [
+                18.25,
+                9.75
+            ]
+        ],
+        [
+            "chicken",
+            [
+                11.5,
+                10.0
+            ]
+        ],
+        [
+            "yellow bell pepper",
+            [
+                11.5,
+                22.0
+            ]
+        ]
+    ],
+    "fresh fish,garlic,lettuce,onion,oranges,strawberry": [
+        [
+            "garlic",
+            [
+                5.5,
+                17.5
+            ]
+        ],
+        [
+            "lettuce",
+            [
+                13.5,
+                18.0
+            ]
+        ],
+        [
+            "onion",
+            [
+                13.5,
+                22.0
+            ]
+        ],
+        [
+            "fresh fish",
+            [
+                18.25,
+                9.75
+            ]
+        ],
+        [
+            "strawberry",
+            [
+                11.5,
+                6.5
+            ]
+        ],
+        [
+            "oranges",
+            [
+                7.5,
+                6.5
+            ]
         ]
     ]
 }

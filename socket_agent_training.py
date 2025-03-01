@@ -24,11 +24,36 @@ logging.basicConfig(
 
 class SupermarketTrainer:
     def __init__(self, host='127.0.0.1', port=9000, episodes=100):
-        self.action_commands = ['NORTH', 'SOUTH', 'EAST', 'WEST', 'INTERACT']
+        self.action_commands = [
+                'INTERACT',
+                'TURN_NORTH', 'TURN_SOUTH', 'TURN_EAST', 'TURN_WEST',
+                'MOVE_NORTH', 'MOVE_SOUTH', 'MOVE_EAST', 'MOVE_WEST'
+            ]
+        self.direction_map = {0: "NORTH", 1: "SOUTH", 2: "EAST", 3: "WEST"}
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, port))
         self.agent = QLAgent(action_space=len(self.action_commands) - 1)
         self.episodes = episodes
+
+    def translate_command(self, state, command):
+        direction = state['observation']['players'][0]["direction"]
+        
+        if command.startswith("TURN_"):
+            new_command = command.replace("TURN_", "")
+            if (self.direction_map[direction] != new_command):
+                return [new_command]  # Remove "TURN_" prefix and send once
+            else:
+                return ["NOP"]
+        
+        elif command.startswith("MOVE_"):
+            new_command = command.replace("MOVE_", "")
+            if (self.direction_map[direction] == new_command):
+                return [new_command]
+            else:
+                return [new_command, new_command]  # Send movement twice
+        
+        else:
+            return [command]  
 
     def distance(self, a, b):
         return np.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
@@ -57,13 +82,12 @@ class SupermarketTrainer:
             return self.reward_pick_basket(agent_pos, prev_pos, has_basket, prev_baskets, penalties)
 
         if subtask == "navigate_shelf" and target_item:
-            return self.reward_navigate_shelf(state, prev_pos, agent_pos, target_item, penalties)
+            return self.reward_navigate_shelf(prev_pos, agent_pos, target_item, penalties)
 
         if subtask == "pick_place" and target_item:
             return self.reward_pick_place(agent_pos, prev_pos, holding_food, target_item, current_basket_contents, prev_basket_contents, penalties)
 
         return penalties["norm"] + penalties["exit"] + penalties["cart"]
-
 
     def compute_penalties(self, agent_pos, carts, violations):
         exit_distance = self.distance(agent_pos, exit_pos)
@@ -79,7 +103,6 @@ class SupermarketTrainer:
         ])
 
         return {"norm": norm_penalty, "exit": exit_penalty, "cart": cart_penalty}
-
 
     def reward_navigate_basket(self, agent_pos, prev_pos, target_pos, success_condition, prev_baskets, penalties, task_name):
         moving_toward = 5 if self.distance(agent_pos, target_pos) < self.distance(prev_pos, target_pos) else 0
@@ -184,23 +207,20 @@ class SupermarketTrainer:
                 return "return_to_basket"
 
         elif subtask == "navigate_shelf" and target_item:
-            for shelf in state['observation']['shelves']:
-                if shelf['food_name'] == target_item: 
-                    shelf_pos = shelf['position']
-                    if self.distance(agent_pos, shelf_pos) <= threshold_enter:
-                        logging.info(f"Subtask '{subtask}' completed: Reached shelf for {target_item}.")
-                        return True
+            shelf_pos = target_item[0][1]
+            if self.distance(agent_pos, shelf_pos) <= threshold_enter:
+                logging.info(f"Subtask '{subtask}' completed: Reached shelf for {target_item}.")
+                return True
 
         elif subtask == "pick_place" and target_item:
             if target_item in current_basket_contents:
                 logging.info(f"Subtask '{subtask}' completed: {target_item} placed in the basket.")
                 return True
             for shelf in state['observation']['shelves']:
-                if shelf['food_name'] == target_item:
-                    shelf_pos = shelf['position']
-                    if self.distance(agent_pos, shelf_pos) > threshold_leave:
-                        logging.warning(f"Agent moved away from {target_item}'s shelf! Returning to 'navigate_shelf'.")
-                        return "return_to_shelf"
+                shelf_pos = target_item[0][1]
+                if self.distance(agent_pos, shelf_pos) > threshold_leave:
+                    logging.warning(f"Agent moved away from {target_item}'s shelf! Returning to 'navigate_shelf'.")
+                    return "return_to_shelf"
 
         return False
 
@@ -223,17 +243,22 @@ class SupermarketTrainer:
             if completion_status:
                 break  
 
-            action_index = self.agent.choose_action(state, subtask)
+            action_index = self.agent.choose_action(state, subtask, target_item)
             action = self.action_commands[action_index]
+            actions = self.translate_command(state, action)
+            next_state = {}
+
+            for action in actions:
+                next_state = self.send_action(action)
 
             logging.debug(f"Subtask: {subtask} | Selected Action: {action} | Current Position: {state['observation']['players'][0]['position']}")
-
-            next_state = self.send_action(action)  
+ 
             reward = self.calculate_reward(next_state, state, subtask, target_item)
 
             logging.debug(f"Action Executed: {action} | Reward: {reward} | Next Position: {next_state['observation']['players'][0]['position']}")
-
-            self.agent.learning(action_index, reward, state, next_state, subtask)
+            logging.info(f"Reward: {reward}")
+               
+            self.agent.learning(action_index, reward, state, next_state, subtask, target_item)
 
             try:
                 qtable_path = f'qtables/{subtask}.json'

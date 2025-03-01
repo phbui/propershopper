@@ -62,7 +62,6 @@ class ShoppingPlanner(Agent):
             if not found:
                 logging.warning(f"Item '{item}' not found in shelves or counters!")
 
-
         current_position = basket_pos
         logging.info(f"Agent Starting at Basket Position: {current_position}")
 
@@ -84,7 +83,7 @@ class ShoppingPlanner(Agent):
                 new_current_position = None
 
                 for item, shelf in shelf_positions.items():
-                    for offset in [0.5, -0.5, 1.0, -1.0]:
+                    for offset in [0.25, -0.25, 0.5, -0.5, 1.0, -1.0]:
                         new_shelf = (shelf[0], shelf[1] + offset)
                         new_position = (current_position[0], current_position[1] + offset)
                         path = self.astar(new_position, new_shelf, objs, self.map_width, self.map_height)
@@ -112,7 +111,8 @@ class ShoppingPlanner(Agent):
 
             logging.info(f"Choosing Shelf at {best_shelf} (Path Length: {path_lengths[best_item][1]})")
 
-            ordered_shelves.append(best_shelf)
+            # Store as tuple (item_name, shelf_position)
+            ordered_shelves.append((best_item, best_shelf))
 
             # Shift both `current_position` and `shelf_position`
             new_position = (best_shelf[0], best_shelf[1] + 0.5)
