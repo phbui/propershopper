@@ -19,6 +19,8 @@ class QLAgent:
 
         # Load or initialize separate Q-tables for different subtasks
         self.qtable_navigate_basket = self.load_qtable("navigate_basket")
+        self.qtable_pick_basket = self.load_qtable("pick_basket")
+
         self.qtable_navigate_shelf = self.load_qtable("navigate_shelf")
         self.qtable_pick_place = self.load_qtable("pick_place")
 
@@ -28,12 +30,15 @@ class QLAgent:
     def get_qtable(self, subtask):
         if subtask == "navigate_basket":
             return self.qtable_navigate_basket
+        elif subtask == "pick_basket":
+            return self.qtable_pick_basket
         elif subtask == "navigate_shelf":
             return self.qtable_navigate_shelf
         elif subtask == "pick_place":
             return self.qtable_pick_place
         else:
-            raise ValueError("Unknown subtask type")
+            raise ValueError(f"Unknown subtask type: {subtask}")
+
 
     def trans(self, state, granularity=0.5):
         agent_pos = state['observation']['players'][0]['position']
