@@ -123,37 +123,72 @@ class SupermarketTrainer:
 
         return {"observation": {"players": [{}]}, "gameOver": True}  # Fallback state
 
-    def execute_subtask(self, subtask, episode_length, target_item=None):
-        """Execute a subtask, updating state only through `send_action`."""
-        cnt = 0
-        state = self.send_action("NOP")  # Initial state retrieval
+    def check_subtask_completion(self, subtask, state, target_item=None):
+        """
+        Check if a subtask is completed based on the current game state.
+        """
+        agent_pos = state['observation']['players'][0]['position']
+        holding_food = state['observation']['players'][0]['holding_food']
+        baskets = state['observation']['baskets']
+        has_basket = len(baskets) > 0 and baskets[0]['owner'] == 0
+        current_basket_contents = baskets[0]['contents'] if has_basket else []
 
+        if subtask == "navigate_basket":
+            basket_pos = [3.5, 18.5]
+            if self.distance(agent_pos, basket_pos) < 0.6 and has_basket:
+                logging.info(f"Subtask '{subtask}' completed: Basket acquired at {agent_pos}.")
+                return True
+
+        elif subtask == "navigate_shelf" and target_item:
+            for shelf in state['observation']['shelves']:
+                if shelf['food_name'] == target_item:
+                    shelf_pos = shelf['position']
+                    if self.distance(agent_pos, shelf_pos) < 0.6:
+                        logging.info(f"Subtask '{subtask}' completed: Reached shelf for {target_item} at {shelf_pos}.")
+                        return True
+
+        elif subtask == "pick_place" and target_item:
+            if target_item in current_basket_contents:
+                logging.info(f"Subtask '{subtask}' completed: {target_item} placed in the basket.")
+                return True
+
+        return False
+
+
+    def execute_subtask(self, subtask, target_item=None):
+        """
+        Execute a subtask until completion conditions are met.
+        """
+        state = self.send_action("NOP")  # Initial state retrieval
         logging.info(f"\n--- Executing Subtask: {subtask} | Target Item: {target_item if target_item else 'N/A'} ---\n")
 
-        while not state['gameOver'] and cnt < episode_length:
-            cnt += 1
+        while not state['gameOver']:
+            if self.check_subtask_completion(subtask, state, target_item):
+                break  # Stop execution if subtask is completed
+
             action_index = self.agent.choose_action(state, subtask)
             action = self.action_commands[action_index]
 
-            logging.debug(f"Step {cnt} | Subtask: {subtask} | Selected Action: {action} | Current Position: {state['observation']['players'][0]['position']}")
+            logging.debug(f"Subtask: {subtask} | Selected Action: {action} | Current Position: {state['observation']['players'][0]['position']}")
 
             next_state = self.send_action(action)  # Send action and receive updated state
             reward = self.calculate_reward(next_state, state, subtask, target_item)
 
-            logging.debug(f"Step {cnt} | Action Executed: {action} | Reward: {reward} | Next Position: {next_state['observation']['players'][0]['position']}")
+            logging.debug(f"Action Executed: {action} | Reward: {reward} | Next Position: {next_state['observation']['players'][0]['position']}")
 
             self.agent.learning(action_index, reward, state, next_state, subtask)
 
             try:
                 qtable_path = f'qtables/{subtask}.json'
                 self.agent.get_qtable(subtask).to_json(qtable_path)
-                logging.debug(f"Step {cnt} | Q-table Updated: {qtable_path}")
+                logging.debug(f"Q-table Updated: {qtable_path}")
             except Exception as e:
-                logging.error(f"Step {cnt} | Failed to Save Q-table for {subtask} | Error: {e}")
+                logging.error(f"Failed to Save Q-table for {subtask} | Error: {e}")
 
             state = next_state  # Update state for next iteration
 
-        logging.info(f"\n--- Subtask {subtask} Completed | Total Steps: {cnt} ---\n")
+        logging.info(f"\n--- Subtask '{subtask}' Completed ---\n")
+
 
     def train(self):
         """Run the training loop, handling state updates through `send_action`."""
