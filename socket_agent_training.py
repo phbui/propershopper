@@ -148,9 +148,18 @@ class SupermarketTrainer:
                         return True
 
         elif subtask == "pick_place" and target_item:
+            # Check if item is in the basket
             if target_item in current_basket_contents:
                 logging.info(f"Subtask '{subtask}' completed: {target_item} placed in the basket.")
                 return True
+
+            # Check if the agent has moved away from the shelf
+            for shelf in state['observation']['shelves']:
+                if shelf['food_name'] == target_item:
+                    shelf_pos = shelf['position']
+                    if self.distance(agent_pos, shelf_pos) > 2:
+                        logging.warning(f"Agent moved away from {target_item}'s shelf! Returning to 'navigate_shelf'.")
+                        return "return_to_shelf"  # Signal that we need to re-enter navigate_shelf
 
         return False
 
@@ -158,12 +167,21 @@ class SupermarketTrainer:
     def execute_subtask(self, subtask, target_item=None):
         """
         Execute a subtask until completion conditions are met.
+        Handles cases where the agent moves away from a shelf and must return.
         """
         state = self.send_action("NOP")  # Initial state retrieval
         logging.info(f"\n--- Executing Subtask: {subtask} | Target Item: {target_item if target_item else 'N/A'} ---\n")
 
         while not state['gameOver']:
-            if self.check_subtask_completion(subtask, state, target_item):
+            completion_status = self.check_subtask_completion(subtask, state, target_item)
+
+            # If the agent moves away from the shelf, go back to navigate_shelf
+            if completion_status == "return_to_shelf":
+                logging.warning(f"Agent moved too far from shelf! Switching back to 'navigate_shelf' for {target_item}.")
+                self.execute_subtask("navigate_shelf", target_item)
+                continue  # Restart the loop with the updated state
+
+            if completion_status:
                 break  # Stop execution if subtask is completed
 
             action_index = self.agent.choose_action(state, subtask)
