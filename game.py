@@ -17,6 +17,16 @@ from player import Player
 from shelves import Shelf
 from shoppingcarts import Carts
 from baskets import Baskets
+import logging
+
+# Logging setup
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s",
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
 
 # from cart_state import CartState
 
@@ -557,6 +567,7 @@ class Game:
         if basket is not None:
             basket.set_direction(direction)
 
+        logging.info(f"{player.position[0], player.position[1]}")
         self.move_unit(player, [current_speed * x1, current_speed * y1])
 
     # Reading in map

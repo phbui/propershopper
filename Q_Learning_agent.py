@@ -2,15 +2,25 @@ import numpy as np
 import pandas as pd
 import json
 import os
+import logging
+
+# Logging setup
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s",
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
 
 class QLAgent:
     def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.1, mini_epsilon=0.01, decay=0.999):
         self.action_space = action_space
-        self.alpha = alpha               # Learning rate
-        self.gamma = gamma               # Discount factor
-        self.epsilon = epsilon           # Exploration-exploitation balance
-        self.mini_epsilon = mini_epsilon # Minimum exploration probability
-        self.decay = decay               # Epsilon decay over time
+        self.alpha = alpha  # Learning rate
+        self.gamma = gamma  # Discount factor
+        self.epsilon = epsilon  # Exploration-exploitation balance
+        self.mini_epsilon = mini_epsilon  # Minimum exploration probability
+        self.decay = decay  # Epsilon decay over time
 
         # Directory for saving Q-tables
         self.qtable_dir = "qtables"
@@ -20,6 +30,9 @@ class QLAgent:
         self.qtable_navigate_basket = self.load_qtable("navigate_basket")
         self.qtable_navigate_shelf = self.load_qtable("navigate_shelf")
         self.qtable_pick_place = self.load_qtable("pick_place")
+
+        logging.info("\n--- Q-Learning Agent Initialized ---\n")
+        logging.info(f"Action Space: {self.action_space} | Alpha: {self.alpha} | Gamma: {self.gamma} | Epsilon: {self.epsilon} | Decay: {self.decay}\n")
 
     def get_qtable(self, subtask):
         """Returns the appropriate Q-table for a given subtask."""
@@ -35,20 +48,19 @@ class QLAgent:
     def trans(self, state, granularity=0.5):
         """Transform the raw state into a learnable Q-table state."""
         agent_pos = state['observation']['players'][0]['position']
-        basket_pos = [3.5, 18.5]  # Assume basket is at a fixed location
+        basket_pos = [3.5, 18.5]  # Fixed basket location
 
-        # Get the target shelf position
+        # Identify the target shelf position
         shopping_list = state['observation']['players'][0]['shopping_list']
         shelf_pos = None
         if shopping_list:
-            target_item = shopping_list[0]  # Focus on the first item in the list
+            target_item = shopping_list[0]
             for shelf in state['observation']['shelves']:
                 if shelf['food_name'] == target_item:
                     shelf_pos = shelf['position']
                     break
 
-        if not shelf_pos:
-            shelf_pos = (0, 0)  # Default shelf position
+        shelf_pos = shelf_pos or (0, 0)  # Default shelf position if none found
 
         # Discretize positions
         agent_pos = (round(agent_pos[0] / granularity) * granularity, round(agent_pos[1] / granularity) * granularity)
@@ -58,7 +70,9 @@ class QLAgent:
         holding_item = 1 if state['observation']['players'][0]['holding_food'] else 0
         remaining_items = len(shopping_list)
 
-        return (agent_pos, shelf_pos, basket_pos, holding_item, remaining_items)
+        transformed_state = (agent_pos, shelf_pos, basket_pos, holding_item, remaining_items)
+        logging.info(f"State Transformation | Raw: {state['observation']['players'][0]['position']} | Transformed: {transformed_state}")
+        return transformed_state
 
     def learning(self, action, reward, state, next_state, subtask):
         """Q-learning update rule."""
@@ -72,13 +86,14 @@ class QLAgent:
         if next_state_key not in qtable.index:
             qtable.loc[next_state_key] = np.zeros(self.action_space)
 
-        # Q-learning update rule
         max_future_q = np.max(qtable.loc[next_state_key])
         current_q = qtable.loc[state_key, action]
         qtable.loc[state_key, action] += self.alpha * (reward + self.gamma * max_future_q - current_q)
 
-        # Save the updated Q-table
         self.save_qtable(qtable, subtask)
+
+        logging.info(f"\nLearning Update | Subtask: {subtask} | Action: {action} | Reward: {reward}")
+        logging.info(f"Q-Value Update | State: {state_key} | Old Q: {current_q:.4f} | New Q: {qtable.loc[state_key, action]:.4f}\n")
 
     def choose_action(self, state, subtask):
         """Select an action using ε-greedy policy."""
@@ -91,12 +106,15 @@ class QLAgent:
         # Exploration vs Exploitation
         if np.random.rand() < self.epsilon:
             action = np.random.choice(self.action_space)  # Explore
+            logging.info(f"Choosing Random Action (Exploration) | Subtask: {subtask} | Action: {action}")
         else:
             action = qtable.loc[state_key].idxmax()  # Exploit
+            logging.info(f"Choosing Best Action (Exploitation) | Subtask: {subtask} | Action: {action}")
 
-        # Decay epsilon
+        # Decay epsilon over time
         if self.epsilon > self.mini_epsilon:
             self.epsilon *= self.decay
+            logging.info(f"Epsilon Decay | New Epsilon: {self.epsilon:.6f}")
 
         return action
 
@@ -104,10 +122,13 @@ class QLAgent:
         """Save the Q-table to a JSON file."""
         filepath = os.path.join(self.qtable_dir, f"{subtask}.json")
         qtable.to_json(filepath)
+        logging.info(f"Saved Q-table: {filepath}")
 
     def load_qtable(self, subtask):
         """Load the Q-table from a JSON file if it exists, else create a new one."""
         filepath = os.path.join(self.qtable_dir, f"{subtask}.json")
         if os.path.exists(filepath):
+            logging.info(f"Loading Q-table: {filepath}")
             return pd.read_json(filepath)
+        logging.info(f"Creating New Q-table: {subtask}")
         return pd.DataFrame(columns=[i for i in range(self.action_space)])
