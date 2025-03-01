@@ -2,21 +2,7 @@ import numpy as np
 from utils import recv_socket_data
 import json
 from queue import PriorityQueue
-
-import json
-import socket
-
-from utils import recv_socket_data
-
 import logging
-
-logging.basicConfig(
-    level=logging.debug,
-    format="%(asctime)s - %(message)s",
-    handlers=[
-        logging.StreamHandler()
-    ]
-)
 
 objs = [
     {'height': 2.5, 'width': 3, 'position': [0.2, 4.5], 're_centered_position': [2.125, 5.75]},

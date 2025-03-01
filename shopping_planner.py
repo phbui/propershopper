@@ -3,15 +3,6 @@ import json
 import os
 from astar_agent import Agent, objs
 
-# Logging setup
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(message)s",
-    handlers=[
-        logging.StreamHandler()
-    ]
-)
-
 SHOPPING_ORDER_FILE = "shopping_orders.json"
 
 class ShoppingPlanner(Agent):

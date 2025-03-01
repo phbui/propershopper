@@ -120,5 +120,53 @@
             5.5,
             2.0
         ]
+    ],
+    "banana,broccoli,cheese wheel,chocolate milk,milk,strawberry milk": [
+        [
+            9.5,
+            13.5
+        ],
+        [
+            7.5,
+            22.0
+        ],
+        [
+            5.5,
+            2.0
+        ],
+        [
+            9.5,
+            2.0
+        ],
+        [
+            13.5,
+            2.0
+        ],
+        [
+            9.5,
+            6.0
+        ]
+    ],
+    "fresh fish,garlic,leek,lettuce,oranges,swiss cheese": [
+        [
+            5.5,
+            17.5
+        ],
+        [
+            7.5,
+            18.0
+        ],
+        [
+            13.5,
+            18.0
+        ],
+        [
+            7.5,
+            14.0
+        ],
+        [
+            7.5,
+            6.5
+        ]
     ]
 }

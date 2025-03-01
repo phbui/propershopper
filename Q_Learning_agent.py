@@ -1,20 +1,11 @@
 import numpy as np
 import pandas as pd
-import json
 import os
 import logging
 
-# Logging setup
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(message)s",
-    handlers=[
-        logging.StreamHandler()
-    ]
-)
 
 class QLAgent:
-    def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.1, mini_epsilon=0.01, decay=0.999):
+    def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.5, mini_epsilon=0.01, decay=0.999):
         self.action_space = action_space
         self.alpha = alpha  # Learning rate
         self.gamma = gamma  # Discount factor
@@ -28,29 +19,22 @@ class QLAgent:
 
         # Load or initialize separate Q-tables for different subtasks
         self.qtable_navigate_basket = self.load_qtable("navigate_basket")
-        self.qtable_navigate_shelf = {}  # Separate tables per item
-        self.qtable_pick_place = {}  # Separate tables per item
+        self.qtable_navigate_shelf = self.load_qtable("navigate_shelf")
+        self.qtable_pick_place = self.load_qtable("pick_place")
 
         logging.info("\n--- Q-Learning Agent Initialized ---\n")
         logging.info(f"Action Space: {self.action_space} | Alpha: {self.alpha} | Gamma: {self.gamma} | Epsilon: {self.epsilon} | Decay: {self.decay}\n")
 
-    def get_qtable(self, subtask, item=None):
-        """Returns the appropriate Q-table for a given subtask.
-        
-        If `navigate_shelf` or `pick_place`, uses separate Q-tables per item.
-        """
+    def get_qtable(self, subtask):
+        """Returns the appropriate Q-table for a given subtask."""
         if subtask == "navigate_basket":
             return self.qtable_navigate_basket
         elif subtask == "navigate_shelf":
-            if item not in self.qtable_navigate_shelf:
-                self.qtable_navigate_shelf[item] = self.load_qtable(f"navigate_shelf_{item}")
-            return self.qtable_navigate_shelf[item]
+            return self.qtable_navigate_shelf
         elif subtask == "pick_place":
-            if item not in self.qtable_pick_place:
-                self.qtable_pick_place[item] = self.load_qtable(f"pick_place_{item}")
-            return self.qtable_pick_place[item]
+            return self.qtable_pick_place
         else:
-            raise ValueError(f"Unknown subtask: {subtask}")
+            raise ValueError("Unknown subtask type")
 
     def trans(self, state, granularity=0.5):
         """Transform the raw state into a string-based Q-table state key."""
@@ -82,9 +66,9 @@ class QLAgent:
         logging.debug(f"State Transformation | Raw: {state['observation']['players'][0]['position']} | Transformed: {state_key}")
         return state_key  # Return a string representation
 
-    def learning(self, action, reward, state, next_state, subtask, item=None):
+    def learning(self, action, reward, state, next_state, subtask):
         """Q-learning update rule with string-based indexing."""
-        qtable = self.get_qtable(subtask, item)
+        qtable = self.get_qtable(subtask)
         state_key = self.trans(state)
         next_state_key = self.trans(next_state)
 
@@ -100,11 +84,11 @@ class QLAgent:
         qtable.loc[state_key, action] += self.alpha * (reward + self.gamma * max_future_q - current_q)
 
         # Save the updated Q-table
-        self.save_qtable(qtable, subtask, item)
+        self.save_qtable(qtable, subtask)
 
-    def choose_action(self, state, subtask, item=None):
+    def choose_action(self, state, subtask):
         """Select an action using ε-greedy policy."""
-        qtable = self.get_qtable(subtask, item)
+        qtable = self.get_qtable(subtask)
         state_key = self.trans(state)
 
         # Ensure the key exists in the Q-table before accessing it
@@ -123,10 +107,9 @@ class QLAgent:
 
         return action
 
-    def save_qtable(self, qtable, subtask, item=None):
+    def save_qtable(self, qtable, subtask):
         """Save the Q-table to a JSON file."""
-        filename = f"{subtask}_{item}.json" if item else f"{subtask}.json"
-        filepath = os.path.join(self.qtable_dir, filename)
+        filepath = os.path.join(self.qtable_dir, f"{subtask}.json")
         qtable.to_json(filepath)
         logging.debug(f"Saved Q-table: {filepath}")
 
@@ -134,7 +117,7 @@ class QLAgent:
         """Load the Q-table from a JSON file if it exists, else create a new one."""
         filepath = os.path.join(self.qtable_dir, f"{subtask}.json")
         if os.path.exists(filepath):
-            logging.debug(f"Loading Q-table: {filepath}")
+            logging.info(f"Loading Q-table: {filepath}")
             return pd.read_json(filepath)
-        logging.debug(f"Creating New Q-table: {subtask}")
+        logging.info(f"Creating New Q-table: {subtask}")
         return pd.DataFrame(columns=[i for i in range(self.action_space)])

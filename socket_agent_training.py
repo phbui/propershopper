@@ -154,9 +154,6 @@ class SupermarketTrainer:
         return {"observation": {"players": [{}]}, "gameOver": True}  # Fallback state
 
     def check_subtask_completion(self, subtask, state, target_item=None):
-        """
-        Check if a subtask is completed based on the current game state.
-        """
         agent_pos = state['observation']['players'][0]['position']
         holding_food = state['observation']['players'][0]['holding_food']
         baskets = state['observation']['baskets']
@@ -199,10 +196,6 @@ class SupermarketTrainer:
         return False
 
     def execute_subtask(self, subtask, target_item):
-        """
-        Execute a subtask until completion conditions are met.
-        Handles cases where the agent moves away and must return.
-        """
         state = self.send_action("NOP")  # Initial state retrieval
         logging.info(f"\n--- Executing Subtask: {subtask} | Target Item: {target_item if target_item else 'N/A'} ---\n")
 
@@ -246,13 +239,12 @@ class SupermarketTrainer:
         logging.info(f"\n--- Subtask '{subtask}' Completed ---\n")
 
     def train(self):
-        """Run the training loop, handling state updates through `send_action`."""
         for episode in range(self.episodes):
             self.send_action("RESET")  
             state = self.send_action("NOP")  
 
             shopping_planner = ShoppingPlanner(self.sock, state)
-            ordered_shelves = shopping_planner.compute_shopping_order(state['observation']['players'][0]['shopping_list'])
+            ordered_shelves = shopping_planner.compute_shopping_order(state['observation']['players'][0]['shopping_list'][:6])
 
             logging.info(f"\n--- EPISODE {episode + 1}/{self.episodes} START ---\n")
 
