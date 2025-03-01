@@ -10,17 +10,16 @@ from utils import recv_socket_data
 from Q_Learning_agent import QLAgent
 from shopping_planner import ShoppingPlanner
 
+basket_pos = [3.5, 18.5]
 exit_pos = [-0.8, 15.6]
 cart_pos_left = [1, 18.5]
 cart_pos_right = [2, 18.5]
 
-# Logging setup: logs to both file and console
+# Logging setup
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout)  # Output to chat
-    ]
+    handlers=[logging.StreamHandler(sys.stdout)]
 )
 
 class SupermarketTrainer:
@@ -133,40 +132,44 @@ class SupermarketTrainer:
         current_basket_contents = baskets[0]['contents'] if has_basket else []
 
         if subtask == "navigate_basket":
-            basket_pos = [3.5, 18.5]
-            if self.distance(agent_pos, basket_pos) < 0.6 and has_basket:
-                logging.info(f"Subtask '{subtask}' completed: Basket acquired at {agent_pos}.")
+            if self.distance(agent_pos, basket_pos) < 0.6:
+                logging.info(f"Subtask '{subtask}' completed: Arrived at basket.")
                 return True
+
+        elif subtask == "pick_basket":
+
+            if has_basket:
+                logging.info(f"Subtask '{subtask}' completed: Picked up basket.")
+                return True
+            if self.distance(agent_pos, basket_pos) > 2:
+                logging.warning(f"Agent moved away from basket! Returning to 'navigate_basket'.")
+                return "return_to_basket"
 
         elif subtask == "navigate_shelf" and target_item:
             for shelf in state['observation']['shelves']:
                 if shelf['food_name'] == target_item:
                     shelf_pos = shelf['position']
                     if self.distance(agent_pos, shelf_pos) < 0.6:
-                        logging.info(f"Subtask '{subtask}' completed: Reached shelf for {target_item} at {shelf_pos}.")
+                        logging.info(f"Subtask '{subtask}' completed: Reached shelf for {target_item}.")
                         return True
 
         elif subtask == "pick_place" and target_item:
-            # Check if item is in the basket
             if target_item in current_basket_contents:
                 logging.info(f"Subtask '{subtask}' completed: {target_item} placed in the basket.")
                 return True
-
-            # Check if the agent has moved away from the shelf
             for shelf in state['observation']['shelves']:
                 if shelf['food_name'] == target_item:
                     shelf_pos = shelf['position']
                     if self.distance(agent_pos, shelf_pos) > 2:
                         logging.warning(f"Agent moved away from {target_item}'s shelf! Returning to 'navigate_shelf'.")
-                        return "return_to_shelf"  # Signal that we need to re-enter navigate_shelf
+                        return "return_to_shelf"
 
         return False
-
 
     def execute_subtask(self, subtask, target_item):
         """
         Execute a subtask until completion conditions are met.
-        Handles cases where the agent moves away from a shelf and must return.
+        Handles cases where the agent moves away and must return.
         """
         state = self.send_action("NOP")  # Initial state retrieval
         logging.info(f"\n--- Executing Subtask: {subtask} | Target Item: {target_item if target_item else 'N/A'} ---\n")
@@ -174,21 +177,25 @@ class SupermarketTrainer:
         while not state['gameOver']:
             completion_status = self.check_subtask_completion(subtask, state, target_item)
 
-            # If the agent moves away from the shelf, go back to navigate_shelf
+            if completion_status == "return_to_basket":
+                logging.warning(f"Agent moved too far from basket! Switching back to 'navigate_basket'.")
+                self.execute_subtask("navigate_basket", None)
+                continue  
+
             if completion_status == "return_to_shelf":
                 logging.warning(f"Agent moved too far from shelf! Switching back to 'navigate_shelf' for {target_item}.")
                 self.execute_subtask("navigate_shelf", target_item)
-                continue  # Restart the loop with the updated state
+                continue  
 
             if completion_status:
-                break  # Stop execution if subtask is completed
+                break  
 
             action_index = self.agent.choose_action(state, subtask)
             action = self.action_commands[action_index]
 
             logging.debug(f"Subtask: {subtask} | Selected Action: {action} | Current Position: {state['observation']['players'][0]['position']}")
 
-            next_state = self.send_action(action)  # Send action and receive updated state
+            next_state = self.send_action(action)  
             reward = self.calculate_reward(next_state, state, subtask, target_item)
 
             logging.debug(f"Action Executed: {action} | Reward: {reward} | Next Position: {next_state['observation']['players'][0]['position']}")
@@ -202,16 +209,15 @@ class SupermarketTrainer:
             except Exception as e:
                 logging.error(f"Failed to Save Q-table for {subtask} | Error: {e}")
 
-            state = next_state  # Update state for next iteration
+            state = next_state  
 
         logging.info(f"\n--- Subtask '{subtask}' Completed ---\n")
-
 
     def train(self):
         """Run the training loop, handling state updates through `send_action`."""
         for episode in range(self.episodes):
-            self.send_action("RESET")  # Reset environment
-            state = self.send_action("NOP")  # Retrieve initial state
+            self.send_action("RESET")  
+            state = self.send_action("NOP")  
 
             shopping_planner = ShoppingPlanner(self.sock, state)
             ordered_shelves = shopping_planner.compute_shopping_order(state['observation']['players'][0]['shopping_list'])
@@ -219,19 +225,14 @@ class SupermarketTrainer:
             logging.info(f"\n--- EPISODE {episode + 1}/{self.episodes} START ---\n")
 
             self.execute_subtask("navigate_basket", None)
+            self.execute_subtask("pick_basket", None)  
 
             for item in ordered_shelves:
-                logging.info(f"\nNavigating to Shelf for Item: {item}\n")
                 self.execute_subtask("navigate_shelf", item)
-
-                logging.info(f"\nPicking and Placing Item: {item}\n")
                 self.execute_subtask("pick_place", item)
 
-            self.execute_subtask("navigate_basket", None)
-            self.send_action("INTERACT")
-
             logging.info(f"\n--- EPISODE {episode + 1}/{self.episodes} COMPLETE ---\n")
-            self.send_action("RESET")  # Reset for next episode
+            self.send_action("RESET")  
 
         self.sock.close()
 

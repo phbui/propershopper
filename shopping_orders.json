@@ -94,5 +94,31 @@
             7.5,
             10.0
         ]
+    ],
+    "avocado,carrot,fresh fish,garlic,milk,prepared foods,steak,swiss cheese": [
+        [
+            5.5,
+            17.5
+        ],
+        [
+            5.5,
+            22.0
+        ],
+        [
+            11.5,
+            18.0
+        ],
+        [
+            7.5,
+            14.0
+        ],
+        [
+            7.5,
+            10.0
+        ],
+        [
+            5.5,
+            2.0
+        ]
     ]
 }
