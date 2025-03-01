@@ -194,7 +194,7 @@ class SupermarketTrainer:
 
             logging.debug(f"Action Executed: {action} | Reward: {reward} | Next Position: {next_state['observation']['players'][0]['position']}")
 
-            self.agent.learning(action_index, reward, state, next_state, subtask)
+            self.agent.learning(action_index, reward, state, next_state, subtask, target_item)
 
             try:
                 qtable_path = f'qtables/{subtask}.json'
@@ -215,7 +215,7 @@ class SupermarketTrainer:
             state = self.send_action("NOP")  # Retrieve initial state
 
             shopping_planner = ShoppingPlanner(self.sock, state)
-            ordered_shelves = shopping_planner.compute_shopping_order(['strawberry milk', 'raspberry', 'cucumber', 'milk', 'swiss cheese'])
+            ordered_shelves = shopping_planner.compute_shopping_order(state['observation']['players'][0]['shopping_list'])
 
             logging.info(f"\n--- EPISODE {episode + 1}/{self.episodes} START ---\n")
 
