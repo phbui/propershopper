@@ -25,7 +25,7 @@ logging.basicConfig(
 
 class SupermarketTrainer:
     def __init__(self, host='127.0.0.1', port=9000, episodes=100, episode_length=1000):
-        self.action_commands = ['NOP', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'INTERACT', 'RESET']
+        self.action_commands = ['NORTH', 'SOUTH', 'EAST', 'WEST', 'INTERACT']
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, port))
         self.agent = QLAgent(action_space=len(self.action_commands) - 1)
@@ -95,28 +95,67 @@ class SupermarketTrainer:
 
         return norm_penalty + exit_penalty + cart_penalty
 
+    def send_action(self, action):
+        """Send an action and return the resulting state."""
+        action = f"0 {action}"  
+        logging.debug(f"Sending action: {action}")
+
+        try:
+            self.sock.send(str.encode(action))
+            output = recv_socket_data(self.sock)
+
+            if not output:
+                logging.warning("Received empty response from socket.")
+                return {"observation": {"players": [{}]}, "gameOver": True}
+
+            state = json.loads(output)
+            return state
+
+        except json.JSONDecodeError as e:
+            logging.error(f"JSON Decode Error: {e} | Raw Data: {output}")
+        except Exception as e:
+            logging.error(f"Unexpected Error in send_action(): {e}")
+
+        return {"observation": {"players": [{}]}, "gameOver": True}  # Fallback state
+
     def execute_subtask(self, subtask, episode_length, target_item=None):
-        cnt, state = 0, self.get_state()
+        """Execute a subtask, updating state only through `send_action`."""
+        cnt = 0
+        state = self.send_action("NOP")  # Initial state retrieval
+
+        logging.info(f"\n--- Executing Subtask: {subtask} | Target Item: {target_item if target_item else 'N/A'} ---\n")
+
         while not state['gameOver'] and cnt < episode_length:
             cnt += 1
             action_index = self.agent.choose_action(state, subtask)
-            action = f"0 {self.action_commands[action_index]}"
-            self.sock.send(str.encode(action))
-            next_state = self.get_state()
+            action = self.action_commands[action_index]
+
+            logging.info(f"Step {cnt} | Subtask: {subtask} | Selected Action: {action} | Current Position: {state['observation']['players'][0]['position']}")
+
+            next_state = self.send_action(action)  # Send action and receive updated state
             reward = self.calculate_reward(next_state, state, subtask, target_item)
+
+            logging.info(f"Step {cnt} | Action Executed: {action} | Reward: {reward} | Next Position: {next_state['observation']['players'][0]['position']}")
+
             self.agent.learning(action_index, reward, state, next_state, subtask)
-            state = next_state
-            self.agent.get_qtable(subtask).to_json(f'qtables/{subtask}.json')
 
-            logging.info(f"Step {cnt} | Subtask: {subtask} | Action: {action} | Reward: {reward} | Q-table updated")
+            try:
+                qtable_path = f'qtables/{subtask}.json'
+                self.agent.get_qtable(subtask).to_json(qtable_path)
+                logging.info(f"Step {cnt} | Q-table Updated: {qtable_path}")
+            except Exception as e:
+                logging.error(f"Step {cnt} | Failed to Save Q-table for {subtask} | Error: {e}")
 
-    def get_state(self):
-        return json.loads(recv_socket_data(self.sock))
+            state = next_state  # Update state for next iteration
+
+        logging.info(f"\n--- Subtask {subtask} Completed | Total Steps: {cnt} ---\n")
 
     def train(self):
+        """Run the training loop, handling state updates through `send_action`."""
         for episode in range(self.episodes):
-            self.sock.send(str.encode("0 RESET"))
-            state = self.get_state()
+            self.send_action("RESET")  # Reset environment
+            state = self.send_action("NOP")  # Retrieve initial state
+
             shopping_planner = ShoppingPlanner(self.sock, state)
             ordered_shelves = shopping_planner.compute_shopping_order(['strawberry milk', 'raspberry', 'cucumber', 'milk', 'swiss cheese'])
 
@@ -132,9 +171,10 @@ class SupermarketTrainer:
                 self.execute_subtask("pick_place", self.episode_length, item)
 
             self.execute_subtask("navigate_basket", self.episode_length)
-            self.sock.send(str.encode("0 INTERACT"))
+            self.send_action("INTERACT")
 
             logging.info(f"\n--- EPISODE {episode + 1}/{self.episodes} COMPLETE ---\n")
+            self.send_action("RESET")  # Reset for next episode
 
         self.sock.close()
 
