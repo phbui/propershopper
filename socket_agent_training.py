@@ -109,6 +109,11 @@ class SupermarketTrainer:
                 return {"observation": {"players": [{}]}, "gameOver": True}
 
             state = json.loads(output)
+            pos = state['observation']['players'][0]['position']
+            x = round(pos[0] / 0.05) * 0.05 
+            y = round(pos[1] / 0.05) * 0.05  
+            x, y = round(x, 2), round(y, 2)
+            state['observation']['players'][0]['position'] = [x, y]
             return state
 
         except json.JSONDecodeError as e:
@@ -130,19 +135,19 @@ class SupermarketTrainer:
             action_index = self.agent.choose_action(state, subtask)
             action = self.action_commands[action_index]
 
-            logging.info(f"Step {cnt} | Subtask: {subtask} | Selected Action: {action} | Current Position: {state['observation']['players'][0]['position']}")
+            logging.debug(f"Step {cnt} | Subtask: {subtask} | Selected Action: {action} | Current Position: {state['observation']['players'][0]['position']}")
 
             next_state = self.send_action(action)  # Send action and receive updated state
             reward = self.calculate_reward(next_state, state, subtask, target_item)
 
-            logging.info(f"Step {cnt} | Action Executed: {action} | Reward: {reward} | Next Position: {next_state['observation']['players'][0]['position']}")
+            logging.debug(f"Step {cnt} | Action Executed: {action} | Reward: {reward} | Next Position: {next_state['observation']['players'][0]['position']}")
 
             self.agent.learning(action_index, reward, state, next_state, subtask)
 
             try:
                 qtable_path = f'qtables/{subtask}.json'
                 self.agent.get_qtable(subtask).to_json(qtable_path)
-                logging.info(f"Step {cnt} | Q-table Updated: {qtable_path}")
+                logging.debug(f"Step {cnt} | Q-table Updated: {qtable_path}")
             except Exception as e:
                 logging.error(f"Step {cnt} | Failed to Save Q-table for {subtask} | Error: {e}")
 
