@@ -51,13 +51,16 @@ class SupermarketTrainer:
 
         # Apply appropriate subtask reward calculation
         if subtask == "navigate_basket":
-            return self.reward_navigate_basket(agent_pos, prev_pos, [3.5, 18.5], has_basket, prev_baskets, penalties, "Navigate Basket")
+            return self.reward_navigate_basket(agent_pos, prev_pos, basket_pos, has_basket, prev_baskets, penalties, "Navigate Basket")
+
+        if subtask == "pick_basket":
+            return self.reward_pick_basket(agent_pos, prev_pos, has_basket, prev_baskets, penalties)
 
         if subtask == "navigate_shelf" and target_item:
             return self.reward_navigate_shelf(state, prev_pos, agent_pos, target_item, penalties)
 
         if subtask == "pick_place" and target_item:
-            return self.reward_pick_place(holding_food, target_item, current_basket_contents, prev_basket_contents, penalties)
+            return self.reward_pick_place(agent_pos, prev_pos, holding_food, target_item, current_basket_contents, prev_basket_contents, penalties)
 
         return penalties["norm"] + penalties["exit"] + penalties["cart"]
 
@@ -91,6 +94,15 @@ class SupermarketTrainer:
                     f"Cart: {penalties['cart']}, Movement: {movement_penalty}")
         return reward
 
+    def reward_pick_basket(self, agent_pos, prev_pos, has_basket, prev_baskets, penalties):
+        moving_toward = 5 if self.distance(agent_pos, basket_pos) < self.distance(prev_pos, basket_pos) else 0
+        picked_basket = 15 if has_basket and not (len(prev_baskets) > 0 and prev_baskets[0]['owner'] == 0) else 0
+
+        reward = moving_toward + picked_basket + penalties["norm"] + penalties["exit"] + penalties["cart"]
+
+        logging.debug(f"Pick Basket | Reward: {reward} | Moving: {moving_toward}, Picked Basket: {picked_basket}, "
+                    f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}")
+        return reward
 
     def reward_navigate_shelf(self, state, prev_pos, agent_pos, target_item, penalties):
         shelf_pos = next(
@@ -112,19 +124,18 @@ class SupermarketTrainer:
                     f"Cart: {penalties['cart']}, Movement: {movement_penalty}")
         return reward
 
-
-    def reward_pick_place(self, holding_food, target_item, current_basket_contents, prev_basket_contents, penalties):
+    def reward_pick_place(self, agent_pos, prev_pos, holding_food, target_item, current_basket_contents, prev_basket_contents, penalties):
+        moving_toward = 5 if self.distance(agent_pos, prev_pos) < self.distance(prev_pos, agent_pos) else 0
         item_picked = 10 if holding_food and holding_food == target_item else 0
         wrong_item_penalty = -5 if holding_food and holding_food != target_item else 0
         item_placed_in_basket = 15 if len(current_basket_contents) > len(prev_basket_contents) else 0
 
-        reward = item_picked + wrong_item_penalty + item_placed_in_basket + penalties["norm"] + penalties["exit"] + penalties["cart"]
+        reward = moving_toward + item_picked + wrong_item_penalty + item_placed_in_basket + penalties["norm"] + penalties["exit"] + penalties["cart"]
 
-        logging.debug(f"Pick & Place | Item: {target_item} | Reward: {reward} | Picked: {item_picked}, "
+        logging.debug(f"Pick & Place | Item: {target_item} | Reward: {reward} | Moving: {moving_toward}, Picked: {item_picked}, "
                     f"Wrong Item: {wrong_item_penalty}, Placed: {item_placed_in_basket}, "
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}")
         return reward
-
 
     def send_action(self, action):
         action = f"0 {action}"  
@@ -155,7 +166,6 @@ class SupermarketTrainer:
 
     def check_subtask_completion(self, subtask, state, target_item=None, threshold_enter=1.0, threshold_leave=4.0):
         agent_pos = state['observation']['players'][0]['position']
-        holding_food = state['observation']['players'][0]['holding_food']
         baskets = state['observation']['baskets']
         has_basket = len(baskets) > 0 and baskets[0]['owner'] == 0
         current_basket_contents = baskets[0]['contents'] if has_basket else []
