@@ -1,176 +1,115 @@
-#Author Hang Yu
-
 import json
-import random
 import socket
 import numpy as np
-
-import gymnasium as gym
-from env import SupermarketEnv
-from utils import recv_socket_data
-
-from Q_Learning_agent import QLAgent  # Make sure to import your QLAgent class
-import pickle
 import pandas as pd
 
+from env import SupermarketEnv
+from utils import recv_socket_data
+from Q_Learning_agent import QLAgent
 from shopping_planner import ShoppingPlanner
 
-cart = False
-exit_pos = [-0.8, 15.6] # The position of the exit in the environment from [-0.8, 15.6] in x, and y = 15.6
-cart_pos_left = [1, 18.5] # The position of the cart in the environment from [1, 2] in x, and y = 18.5
+exit_pos = [-0.8, 15.6]
+cart_pos_left = [1, 18.5]
 cart_pos_right = [2, 18.5] 
 
-def distance_to_cart(state):
-    agent_position = state['observation']['players'][0]['position']
-    if agent_position[0] > 1.5:
-        cart_distances = [euclidean_distance(agent_position, cart_pos_right)]
-    else:
-        cart_distances = [euclidean_distance(agent_position, cart_pos_left)]
-    return min(cart_distances)
+class SupermarketTrainer:
+    def __init__(self, host='127.0.0.1', port=9000, episodes=100, episode_length=1000):
+        self.action_commands = ['NOP', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'TOGGLE_CART', 'INTERACT', 'RESET']
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect((host, port))
+        self.agent = QLAgent(action_space=len(self.action_commands) - 1)
+        self.episodes = episodes
+        self.episode_length = episode_length
 
-def euclidean_distance(pos1, pos2):
-    # Calculate Euclidean distance between two points
-    return ((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)**0.5
+    def distance(self, pos1, pos2):
+        return np.linalg.norm(np.array(pos1) - np.array(pos2))
 
+    def calculate_reward(self, state, prev_state, subtask):
+        agent_pos = state['observation']['players'][0]['position']
+        prev_pos = prev_state['observation']['players'][0]['position']
+        shopping_list = state['observation']['players'][0]['shopping_list']
+        holding_food = state['observation']['players'][0]['holding_food']
+        baskets = state['observation']['baskets']
+        prev_baskets = prev_state['observation']['baskets']
+        violations = state.get('violations', "")
+        exit_pos = [-0.8, 15.6]
 
-def calculate_reward(previous_state, current_state):
-    reward = 0
-    agent_pos = current_state['observation']['players'][0]['position']
-    prev_pos = previous_state['observation']['players'][0]['position']
-    shopping_list = current_state['observation']['players'][0]['shopping_list']
-    holding_food = current_state['observation']['players'][0]['holding_food']
-    bagged_items = current_state['observation']['players'][0]['bagged_items']
-    violations = current_state.get('violations', "")
+        has_basket = len(baskets) > 0 and baskets[0]['owner'] == 0
+        prev_basket_contents = prev_baskets[0]['contents'] if len(prev_baskets) > 0 else []
+        current_basket_contents = baskets[0]['contents'] if has_basket else []
 
-    exit_pos = [-0.8, 15.6]  # Store exit position
+        exit_distance = self.distance(agent_pos, exit_pos)
+        exit_penalty = -10 if exit_distance < 2.0 else -5 if exit_distance < 4.0 else 0
 
-    # Encourage movement toward the correct shelf
-    def get_shelf_position(item_name):
-        for shelf in current_state['observation']['shelves']:
-            if shelf['food_name'] == item_name:
-                return shelf['position']
-        return None
+        norm_penalty = sum([
+            -10 if "BlockingShelfNorm" in violations else 0,
+            -15 if "WallCollisionViolation" in violations else 0,
+            -20 if "PlayerCollisionNorm" in violations else 0,
+            -10 if "ObjectCollisionNorm" in violations else 0
+        ])
 
-    if shopping_list:
-        target_item = shopping_list[0]  # Prioritize the first item in the list
-        target_pos = get_shelf_position(target_item)
+        if subtask == "navigate_basket":
+            basket_pos = [3.5, 18.5]
+            return (5 if self.distance(agent_pos, basket_pos) < self.distance(prev_pos, basket_pos) else 0) + \
+                (10 if self.distance(agent_pos, basket_pos) < 1.0 else 0) + \
+                (10 if has_basket and not (len(prev_baskets) > 0 and prev_baskets[0]['owner'] == 0) else 0) + \
+                norm_penalty + exit_penalty - (1 if agent_pos == prev_pos else 0)
 
-        if target_pos:
-            prev_dist = np.linalg.norm(np.array(prev_pos) - np.array(target_pos))
-            curr_dist = np.linalg.norm(np.array(agent_pos) - np.array(target_pos))
+        if subtask == "navigate_shelf":
+            if shopping_list:
+                target_item = shopping_list[0]
+                for shelf in state['observation']['shelves']:
+                    if shelf['food_name'] == target_item:
+                        shelf_pos = shelf['position']
+                        break
+                else:
+                    return norm_penalty + exit_penalty
+                return (5 if self.distance(agent_pos, shelf_pos) < self.distance(prev_pos, shelf_pos) else 0) + \
+                    (10 if self.distance(agent_pos, shelf_pos) < 0.6 else 0) + \
+                    norm_penalty + exit_penalty - (1 if agent_pos == prev_pos else 0)
 
-            if curr_dist < prev_dist:
-                reward += 5  # Moving closer
-            if curr_dist < 0.6:
-                reward += 10  # Reached the shelf
+        if subtask == "pick_place":
+            return (10 if holding_food and holding_food in shopping_list else 0) - \
+                (5 if holding_food and holding_food not in shopping_list else 0) + \
+                (15 if len(current_basket_contents) > len(prev_basket_contents) else 0) + \
+                norm_penalty + exit_penalty
 
-    # Reward for picking up the correct item
-    if holding_food and holding_food in shopping_list:
-        reward += 10
-    elif holding_food and holding_food not in shopping_list:
-        reward -= 5  # Picking up the wrong item
+        return norm_penalty + exit_penalty
 
-    # Reward for placing items in the basket
-    if len(bagged_items) > len(previous_state['observation']['players'][0]['bagged_items']):
-        reward += 15
+    def execute_subtask(self, subtask, episode_length):
+        cnt, state = 0, self.get_state()
+        while not state['gameOver'] and cnt < episode_length:
+            cnt += 1
+            action_index = self.agent.choose_action(state, subtask)
+            action = f"0 {self.action_commands[action_index]}"
+            self.sock.send(str.encode(action))
+            next_state = self.get_state()
+            reward = self.calculate_reward(next_state, state, subtask)
+            self.agent.learning(action_index, reward, state, next_state, subtask)
+            state = next_state
+            self.agent.get_qtable(subtask).to_json(f'qtables/{subtask}.json')
 
-    # 🚨 Penalize norm violations
-    if "PersonalSpaceNorm" in violations:
-        reward -= 10
-    if "BlockingShelfNorm" in violations:
-        reward -= 10
-    if "WallCollisionViolation" in violations:
-        reward -= 15  # Hitting a wall is a major mistake
-    if "PlayerCollisionNorm" in violations:
-        reward -= 20  # Bumping into another player
-    if "ObjectCollisionNorm" in violations:
-        reward -= 10  # Hitting an object (e.g., shelves, registers)
+    def get_state(self):
+        return json.loads(recv_socket_data(self.sock))
 
-    exit_distance = np.linalg.norm(np.array(agent_pos) - np.array(exit_pos))
-    if exit_distance < 2.0:  # If within 2 units of the exit, penalize
-        reward -= 10
-    elif exit_distance < 4.0:  # Lesser penalty if within 4 units
-        reward -= 5
+    def train(self):
+        for _ in range(self.episodes):
+            self.sock.send(str.encode("0 RESET"))
+            state = self.get_state()
+            shopping_planner = ShoppingPlanner(self.sock, state)
+            ordered_shelves = shopping_planner.compute_shopping_order(state['observation']['players'][0]['shopping_list'])
+            
+            self.execute_subtask("navigate_basket", self.episode_length)
+            
+            for _ in ordered_shelves:
+                self.execute_subtask("navigate_shelf", self.episode_length)
+                self.execute_subtask("pick_place", self.episode_length)
 
-    # Penalize unnecessary movement
-    if agent_pos == prev_pos:
-        reward -= 1  # No movement penalty
+            self.execute_subtask("navigate_basket", self.episode_length)
+            self.sock.send(str.encode("0 INTERACT"))
 
-    return reward
+        self.sock.close()
 
 if __name__ == "__main__":
-    action_commands = ['NOP', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'TOGGLE_CART', 'INTERACT', 'RESET']
-    
-    agent = QLAgent(action_space=len(action_commands) - 1)  
-    sock_game = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock_game.connect(('127.0.0.1', 9000))
-
-    training_time = 100
-    episode_length = 1000
-
-    for episode in range(training_time):
-        sock_game.send(str.encode("0 RESET"))  # Reset the game
-        state = recv_socket_data(sock_game)
-        state = json.loads(state)
-        agent_pos = state['observation']['players'][0]['position']
-        shopping_list = state['observation']['players'][0]['shopping_list']
-        # Create the planner
-        shopping_planner = ShoppingPlanner(socket_game=sock_game, env=state)
-
-        # Compute the optimal shopping order using A*
-        ordered_shelves = shopping_planner.compute_shopping_order(shopping_list)
-
-        for shelf_pos in ordered_shelves:
-            # Use Q-learning to navigate to each shelf
-            cnt = 0
-            while not state['gameOver'] and cnt < episode_length:
-                cnt += 1
-                action_index = agent.choose_action(state, subtask="navigate_shelf")
-                action = "0 " + action_commands[action_index]
-
-                sock_game.send(str.encode(action))
-                next_state = recv_socket_data(sock_game)
-                next_state = json.loads(next_state)
-
-                reward = calculate_reward(state, next_state)
-                agent.learning(action_index, reward, state, next_state, subtask="navigate_shelf")
-
-                state = next_state
-                agent.qtable_navigate_shelf.to_json('qtable_shelf.json')
-
-
-        for shelf_pos in ordered_shelves:
-            cnt = 0
-            while not state['gameOver'] and cnt < episode_length:
-                cnt += 1
-                action_index = agent.choose_action(state, subtask="navigate_shelf")
-                action = "0 " + action_commands[action_index]
-
-                sock_game.send(str.encode(action))
-                next_state = recv_socket_data(sock_game)
-                next_state = json.loads(next_state)
-
-                reward = calculate_reward(state, next_state)
-                agent.learning(action_index, reward, state, next_state, subtask="navigate_shelf")
-
-                state = next_state
-                agent.qtable_navigate_shelf.to_json('qtable_shelf.json')
-
-            # Once at the shelf, use Q-learning to pick the item
-            action_index = agent.choose_action(state, subtask="pick_place")
-            sock_game.send(str.encode("0 INTERACT"))  # Pick the item
-            next_state = recv_socket_data(sock_game)
-            next_state = json.loads(next_state)
-            reward = calculate_reward(state, next_state)
-            agent.learning(action_index, reward, state, next_state, subtask="pick_place")
-
-        # Navigate to checkout after finishing shopping
-        path_to_register = agent.astar(agent_pos, [2, 4.5], state['observation']['shelves'], 20, 25)
-        if path_to_register:
-            for step in path_to_register:
-                sock_game.send(str.encode("0 " + step))  # Move step by step
-
-        sock_game.send(str.encode("0 INTERACT"))  # Checkout
-
-    sock_game.close()
-
+    trainer = SupermarketTrainer()
+    trainer.train()
