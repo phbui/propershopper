@@ -216,5 +216,73 @@
             9.5,
             2.0
         ]
+    ],
+    "milk,prepared foods,sausage,swiss cheese,yellow bell pepper": [
+        [
+            7.5,
+            13.5
+        ],
+        [
+            5.5,
+            10.0
+        ],
+        [
+            5.5,
+            2.0
+        ],
+        [
+            11.5,
+            22.0
+        ]
+    ],
+    "chocolate milk,fresh fish,garlic,milk,steak,swiss cheese": [
+        [
+            5.5,
+            17.5
+        ],
+        [
+            7.5,
+            14.0
+        ],
+        [
+            7.5,
+            10.0
+        ],
+        [
+            5.5,
+            2.0
+        ],
+        [
+            9.5,
+            2.0
+        ]
+    ],
+    "onion": [
+        [
+            13.5,
+            21.5
+        ]
+    ],
+    "avocado,chicken,chocolate milk,leek,onion,prepared foods": [
+        [
+            7.5,
+            17.5
+        ],
+        [
+            5.5,
+            22.0
+        ],
+        [
+            13.5,
+            22.0
+        ],
+        [
+            9.5,
+            2.0
+        ],
+        [
+            11.5,
+            10.0
+        ]
     ]
 }

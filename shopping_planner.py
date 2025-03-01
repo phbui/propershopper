@@ -40,11 +40,28 @@ class ShoppingPlanner(Agent):
         shelf_positions = {}
 
         for item in shopping_list:
+            # Check shelves first
+            found = False
             for shelf in self.obs['shelves']:
                 if shelf['food_name'] == item:
                     shelf_positions[item] = tuple(shelf['position'])
                     logging.info(f"Found Shelf for {item}: {shelf['position']}")
-                    break  
+                    found = True
+                    break  # Stop searching once found
+
+            # If not found in shelves, check counters
+            if not found:
+                for counter in self.obs['counters']:
+                    if counter['food'] == item:
+                        shelf_positions[item] = tuple(counter['position'])
+                        logging.info(f"Found Counter for {item}: {counter['position']}")
+                        found = True
+                        break  # Stop searching once found
+
+            # Log a warning if item is not found anywhere
+            if not found:
+                logging.warning(f"Item '{item}' not found in shelves or counters!")
+
 
         current_position = basket_pos
         logging.info(f"Agent Starting at Basket Position: {current_position}")

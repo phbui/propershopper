@@ -30,8 +30,8 @@ class SupermarketTrainer:
         self.agent = QLAgent(action_space=len(self.action_commands) - 1)
         self.episodes = episodes
 
-    def distance(self, pos1, pos2):
-        return np.linalg.norm(np.array(pos1) - np.array(pos2))
+    def distance(self, a, b):
+        return np.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
 
     def calculate_reward(self, state, prev_state, subtask, target_item=None):
         agent_pos = state['observation']['players'][0]['position']
@@ -153,7 +153,7 @@ class SupermarketTrainer:
 
         return {"observation": {"players": [{}]}, "gameOver": True}  # Fallback state
 
-    def check_subtask_completion(self, subtask, state, target_item=None, threshold_enter=1.0, threshold_leave=2.0):
+    def check_subtask_completion(self, subtask, state, target_item=None, threshold_enter=1.0, threshold_leave=4.0):
         agent_pos = state['observation']['players'][0]['position']
         holding_food = state['observation']['players'][0]['holding_food']
         baskets = state['observation']['baskets']
@@ -166,7 +166,6 @@ class SupermarketTrainer:
                 return True
 
         elif subtask == "pick_basket":
-
             if has_basket:
                 logging.info(f"Subtask '{subtask}' completed: Picked up basket.")
                 return True
@@ -176,7 +175,7 @@ class SupermarketTrainer:
 
         elif subtask == "navigate_shelf" and target_item:
             for shelf in state['observation']['shelves']:
-                if shelf['food_name'] == target_item:
+                if shelf['food_name'] == target_item: 
                     shelf_pos = shelf['position']
                     if self.distance(agent_pos, shelf_pos) <= threshold_enter:
                         logging.info(f"Subtask '{subtask}' completed: Reached shelf for {target_item}.")
@@ -203,12 +202,10 @@ class SupermarketTrainer:
             completion_status = self.check_subtask_completion(subtask, state, target_item)
 
             if completion_status == "return_to_basket":
-                logging.warning(f"Agent moved too far from basket! Switching back to 'navigate_basket'.")
                 self.execute_subtask("navigate_basket", None)
                 continue  
 
             if completion_status == "return_to_shelf":
-                logging.warning(f"Agent moved too far from shelf! Switching back to 'navigate_shelf' for {target_item}.")
                 self.execute_subtask("navigate_shelf", target_item)
                 continue  
 
