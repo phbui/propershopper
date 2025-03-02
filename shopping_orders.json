@@ -3734,5 +3734,58 @@
                 6.0
             ]
         ]
+    ],
+    "fresh fish": [
+        [
+            "fresh fish",
+            [
+                18.25,
+                10.5
+            ]
+        ]
+    ],
+    "broccoli,chocolate milk,milk,sausage,steak,strawberry milk": [
+        [
+            "broccoli",
+            [
+                7.5,
+                21.5
+            ]
+        ],
+        [
+            "sausage",
+            [
+                5.5,
+                10.5
+            ]
+        ],
+        [
+            "steak",
+            [
+                7.5,
+                10.5
+            ]
+        ],
+        [
+            "milk",
+            [
+                5.5,
+                2.0
+            ]
+        ],
+        [
+            "chocolate milk",
+            [
+                9.5,
+                2.0
+            ]
+        ],
+        [
+            "strawberry milk",
+            [
+                13.5,
+                2.0
+            ]
+        ]
     ]
 }

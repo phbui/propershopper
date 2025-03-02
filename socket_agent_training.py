@@ -30,7 +30,7 @@ class SupermarketTrainer:
         self.direction_map = {0: "NORTH", 1: "SOUTH", 2: "EAST", 3: "WEST"}
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, port))
-        self.agent = QLAgent(action_space=len(self.action_commands) - 1)
+        self.agent = QLAgent(action_space=len(self.action_commands))
         self.episodes = episodes
         self.last_action_index = -1
 
@@ -135,7 +135,7 @@ class SupermarketTrainer:
         direction_bonus = self.compute_direction_bonus(target, agent_pos, action_index)
         reward = (delta_reward + bonus + stagnation_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
-        logging.info(f"Navigate Basket | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
+        logging.debug(f"Navigate Basket | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Prev: {prev_pos} | Curr: {agent_pos} | Reward: {reward} | "
                     f"Delta Reward: {delta_reward}, Bonus: {bonus}, Stag: {stagnation_penalty}, "
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
@@ -148,7 +148,7 @@ class SupermarketTrainer:
         direction_bonus = self.compute_direction_bonus(target, agent_pos, action_index)
         reward = (delta_reward + pick_reward + stagnation_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
-        logging.info(f"Pick Basket | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
+        logging.debug(f"Pick Basket | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Prev: {prev_pos} | Curr: {agent_pos} | Reward: {reward} | "
                     f"Delta: {delta_reward}, Picked: {pick_reward}, Stag: {stagnation_penalty}, "
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
@@ -161,7 +161,7 @@ class SupermarketTrainer:
         direction_bonus = self.compute_direction_bonus(target, agent_pos, action_index)
         reward = (delta_reward + bonus + stagnation_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
-        logging.info(f"Navigate Shelf | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
+        logging.debug(f"Navigate Shelf | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Prev: {prev_pos} | Curr: {agent_pos} | Item: {target_item[0]} | Reward: {reward} | "
                     f"Delta: {delta_reward}, Bonus: {bonus}, Stag: {stagnation_penalty}, "
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
@@ -177,7 +177,7 @@ class SupermarketTrainer:
         direction_bonus = self.compute_direction_bonus(target, agent_pos, action_index)
         reward = (delta_reward + item_picked + wrong_item_penalty + placed_bonus + stagnation_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
-        logging.info(f"Pick & Place | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
+        logging.debug(f"Pick & Place | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Item: {target_item[0]} | Prev: {prev_pos} | Curr: {agent_pos} | Reward: {reward} | "
                     f"Delta: {delta_reward}, Picked: {item_picked}, Wrong: {wrong_item_penalty}, Placed: {placed_bonus}, "
                     f"Stag: {stagnation_penalty}, Norm: {penalties['norm']}, Exit: {penalties['exit']}, "
