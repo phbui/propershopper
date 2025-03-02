@@ -40,7 +40,7 @@ class QLAgent:
         else:
             raise ValueError(f"Unknown subtask type: {subtask}")
 
-    def trans(self, state, target_item, granularity=1):
+    def trans(self, state, last_action, target_item, granularity=1):
         agent_pos = state['observation']['players'][0]['position']
         agent_pos = (round(agent_pos[0] / granularity) * granularity, round(agent_pos[1] / granularity) * granularity)
         agent_pos = [round(agent_pos[0], 2), round(agent_pos[1], 2)]
@@ -56,15 +56,15 @@ class QLAgent:
         target_pos = basket_pos if (not has_basket or target_item is None) else target_item[1]
         target_pos = [round(target_pos[0], 2), round(target_pos[1], 2)]
 
-        state_key = f"{agent_pos}_{target_pos}_{has_basket}_{cart}_{next_item}"
+        state_key = f"{agent_pos}_{target_pos}_{last_action}_{has_basket}_{cart}_{next_item}"
         logging.debug(f"State Transformation | Agent: {agent_pos} | Target: {target_pos} | "
                       f"Basket: {has_basket} | Next Item: {next_item}")
         return state_key
 
-    def learning(self, action, reward, state, next_state, subtask, target_item):
+    def learning(self, action, last_action, reward, state, next_state, subtask, target_item):
         qtable = self.get_qtable(subtask)
-        state_key = self.trans(state, target_item)
-        next_state_key = self.trans(next_state, target_item)
+        state_key = self.trans(state, last_action, target_item)
+        next_state_key = self.trans(next_state, last_action, target_item)
 
         action = int(action)
 
@@ -81,9 +81,9 @@ class QLAgent:
         # Log the updated Q-values for debugging
         logging.debug(f"\n--- Q-Table Updated for {subtask} ---\n{qtable.head(100)}\n")
 
-    def choose_action(self, state, subtask, target_item):
+    def choose_action(self, last_action, state, subtask, target_item):
         qtable = self.get_qtable(subtask)
-        state_key = self.trans(state, target_item)
+        state_key = self.trans(state, last_action, target_item)
 
         if state_key not in qtable.index:
             qtable.loc[state_key] = np.zeros(self.action_space)

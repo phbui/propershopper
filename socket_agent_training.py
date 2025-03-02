@@ -32,6 +32,7 @@ class SupermarketTrainer:
         self.sock.connect((host, port))
         self.agent = QLAgent(action_space=len(self.action_commands) - 1)
         self.episodes = episodes
+        self.last_action_index = -1
 
     def translate_command(self, state, command):
         direction = state['observation']['players'][0]["direction"]
@@ -254,7 +255,7 @@ class SupermarketTrainer:
             if completion_status:
                 break  
 
-            action_index = self.agent.choose_action(state, subtask, target_item)
+            action_index = self.agent.choose_action(self.last_action_index, state, subtask, target_item)
             action = self.action_commands[action_index]
             actions = self.translate_command(state, action)
             next_state = {}
@@ -266,8 +267,9 @@ class SupermarketTrainer:
 
             logging.info(f"Subtask: {subtask} | Action Executed: {action} | Reward: {reward}")
                
-            self.agent.learning(action_index, reward, state, next_state, subtask, target_item)
+            self.agent.learning(self.last_action_index, action_index, reward, state, next_state, subtask, target_item)
             state = next_state  
+            self.last_action_index = action_index
 
         logging.info(f"\n--- Subtask '{subtask}' Completed ---\n")
 
