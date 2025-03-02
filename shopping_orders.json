@@ -75,5 +75,40 @@
             "cucumber"
         ],
         "cost": 75
+    },
+    "cucumber,sausage": {
+        "order": [
+            "cucumber",
+            "sausage"
+        ],
+        "cost": 31
+    },
+    "cucumber,steak": {
+        "order": [
+            "cucumber",
+            "steak"
+        ],
+        "cost": Infinity
+    },
+    "oranges,steak": {
+        "order": [
+            "oranges",
+            "steak"
+        ],
+        "cost": Infinity
+    },
+    "chocolate milk,oranges": {
+        "order": [
+            "chocolate milk",
+            "oranges"
+        ],
+        "cost": Infinity
+    },
+    "chocolate milk,lettuce": {
+        "order": [
+            "chocolate milk",
+            "lettuce"
+        ],
+        "cost": Infinity
     }
 }

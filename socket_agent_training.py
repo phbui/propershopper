@@ -32,6 +32,8 @@ class SupermarketTrainer:
         self.sock.connect((host, port))
         self.agent = QLAgent(action_space=len(self.action_commands))
         self.episodes = episodes
+        self.num_violations = 0
+        self.num_actions = 0
         self.last_action_index = -1
 
     def translate_command(self, state, command):
@@ -67,6 +69,7 @@ class SupermarketTrainer:
         prev_baskets = prev_state['observation']['baskets']
         carts = state['observation']['carts']
         violations = state.get('violations', "")
+        self.num_violations += len(violations)
         has_basket = len(baskets) > 0
         current_basket_contents = baskets[0]['contents'] if has_basket else []
         prev_basket_contents = prev_baskets[0]['contents'] if len(prev_baskets) > 0 else []
@@ -113,9 +116,9 @@ class SupermarketTrainer:
         ideal_direction = self.get_ideal_direction(agent_pos, target_pos)
         action_command = self.action_commands[action_index]
         current_distance = self.distance(agent_pos, target_pos)
-        if current_distance < 1.0:
+        if current_distance < 0.5:
             if action_command == f"TURN_{ideal_direction}":
-                return 50
+                return 30
             else:
                 return -20
         else:
@@ -143,7 +146,7 @@ class SupermarketTrainer:
         has_cart_penalty = -100 if curr_cart != -1 and prev_curr_cart == -1 else 0
         reward = (delta_reward + bonus + stagnation_penalty + has_cart_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
-        logging.info(f"Navigate Basket | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
+        logging.debug(f"Navigate Basket | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Prev: {prev_pos} | Curr: {agent_pos} | Reward: {reward} | "
                     f"Delta Reward: {delta_reward}, Holding: {holding_food_penalty},  Bonus: {bonus}, Stag: {stagnation_penalty}, Has Cart: {has_cart_penalty}, "
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
@@ -158,7 +161,7 @@ class SupermarketTrainer:
         has_cart_penalty = -100 if curr_cart != -1 and prev_curr_cart == -1 else 0
         reward = (delta_reward + pick_reward + stagnation_penalty + has_cart_penalty + 
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
-        logging.info(f"Pick Basket | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
+        logging.debug(f"Pick Basket | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Prev: {prev_pos} | Curr: {agent_pos} | Reward: {reward} | "
                     f"Delta: {delta_reward}, Picked: {pick_reward}, Holding: {holding_food_penalty},  Stag: {stagnation_penalty}, Has Cart: {has_cart_penalty}, "
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
@@ -174,7 +177,7 @@ class SupermarketTrainer:
         has_basket_pentalty = -100 if not has_basket else 0
         reward = (delta_reward + bonus + stagnation_penalty + has_cart_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
-        logging.info(f"Navigate Shelf | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
+        logging.debug(f"Navigate Shelf | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Prev: {prev_pos} | Curr: {agent_pos} | Item: {target_item[0]} | Reward: {reward} | "
                     f"Delta: {delta_reward}, Holding: {holding_food_penalty}, Bonus: {bonus}, Stag: {stagnation_penalty}, Has Cart: {has_cart_penalty}, Has Basket: {has_basket_pentalty},"
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
@@ -189,7 +192,7 @@ class SupermarketTrainer:
         has_cart_penalty = -100 if curr_cart != -1 and prev_curr_cart == -1 else 0
         reward = (delta_reward + placed_bonus + wrong_placed_penalty + stagnation_penalty + has_cart_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
-        logging.info(f"Pick & Place | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
+        logging.debug(f"Pick & Place | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Item: {target_item[0]} | Prev: {prev_pos} | Curr: {agent_pos} | Reward: {reward} | "
                     f"Delta: {delta_reward}, Wrong: {wrong_placed_penalty}, Placed: {placed_bonus}, "
                     f"Stag: {stagnation_penalty}, Has Cart: {has_cart_penalty}, Norm: {penalties['norm']}, Exit: {penalties['exit']}, "
@@ -203,7 +206,7 @@ class SupermarketTrainer:
         direction_bonus = self.compute_direction_bonus(target, agent_pos, action_index)
         reward = (delta_reward + bonus + stagnation_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
-        logging.info(f"Navigate Cart Return | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
+        logging.debug(f"Navigate Cart Return | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Prev: {prev_pos} | Curr: {agent_pos} | Reward: {reward} | "
                     f"Delta: {delta_reward}, Bonus: {bonus}, Stag: {stagnation_penalty}, "
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
@@ -217,7 +220,7 @@ class SupermarketTrainer:
         direction_bonus = self.compute_direction_bonus(target, agent_pos, action_index)
         reward = (delta_reward + cart_reward + stagnation_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
-        logging.info(f"Return Cart | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
+        logging.debug(f"Return Cart | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Prev: {prev_pos} | Curr: {agent_pos} | Reward: {reward} | "
                     f"Delta: {delta_reward}, Stag: {stagnation_penalty}, "
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
@@ -355,6 +358,7 @@ class SupermarketTrainer:
                 break  
 
             action_index, best = self.agent.choose_action(self.last_action_index, state, subtask, target_item)
+            self.num_actions += 1
             action = self.action_commands[action_index]
             actions = self.translate_command(state, action)
             next_state = {}
@@ -390,7 +394,12 @@ class SupermarketTrainer:
                 self.execute_subtask("pick_place", item)
 
             logging.info(f"\n--- EPISODE {episode + 1}/{self.episodes} COMPLETE ---\n")
+            logging.info(f"Number of Violations: {self.num_violations}")
+            logging.info(f"Number of Actions: {self.num_actions}")
+            self.num_violations = 0
+            self.num_actions = 0
             self.send_action("RESET")  
+            
 
         self.sock.close()
 
