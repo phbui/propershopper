@@ -5,6 +5,7 @@ from astar_agent import Agent, objs
 
 SHOPPING_ORDER_FILE = "shopping_orders.json"
 ITEM_LOCATIONS_FILE = "item_locations.json"
+WINDOW_SIZE = 2  
 
 class ShoppingPlanner(Agent):
     def __init__(self, socket_game, env):
@@ -16,13 +17,15 @@ class ShoppingPlanner(Agent):
         if os.path.exists(SHOPPING_ORDER_FILE):
             with open(SHOPPING_ORDER_FILE, "r") as f:
                 self.shopping_orders = json.load(f)
+                self.shopping_orders = {tuple(sorted(k.split(","))): v for k, v in self.shopping_orders.items()}
             logging.info("Loaded cached shopping orders.")
         else:
             self.shopping_orders = {}
 
     def save_shopping_orders(self):
+        json_compatible_orders = {",".join(sorted(k)): v for k, v in self.shopping_orders.items()}
         with open(SHOPPING_ORDER_FILE, "w") as f:
-            json.dump(self.shopping_orders, f, indent=4)
+            json.dump(json_compatible_orders, f, indent=4)
         logging.info("Saved updated shopping orders.")
 
     def load_item_locations(self):
@@ -42,7 +45,6 @@ class ShoppingPlanner(Agent):
         if item in self.item_locations:
             return tuple(self.item_locations[item])
 
-        # Fallback: Search shelves and counters
         for shelf in self.obs['shelves']:
             if shelf['food_name'] == item:
                 pos = [shelf['position'][0] + 1, shelf['position'][1]]
@@ -57,41 +59,61 @@ class ShoppingPlanner(Agent):
                 return tuple(counter['position'])
 
         logging.warning(f"Item '{item}' not found in shelves or counters!")
-        return None  # Indicate item wasn't found
+        return None
+
+    def get_order_chunks(self, shopping_list):
+        chunks = []
+        for i in range(len(shopping_list) - WINDOW_SIZE + 1):
+            chunk = tuple(sorted(shopping_list[i:i + WINDOW_SIZE]))  # Store as sorted tuple
+            chunks.append(chunk)
+        return chunks
+
+    def retrieve_order_from_chunks(self, shopping_list):
+        chunks = self.get_order_chunks(shopping_list)
+        retrieved_order = []
+        used_items = set()
+
+        for chunk in chunks:
+            sorted_chunk = tuple(sorted(chunk))  # Ensure search is order-agnostic
+            if sorted_chunk in self.shopping_orders:
+                for item in self.shopping_orders[sorted_chunk]:
+                    if item not in used_items:
+                        retrieved_order.append(item)
+                        used_items.add(item)
+
+        return retrieved_order if retrieved_order else None
+
+    def store_order_chunks(self, ordered_items):
+        chunks = self.get_order_chunks(ordered_items)
+        for chunk in chunks:
+            self.shopping_orders[chunk] = list(chunk)
+        self.save_shopping_orders()
 
     def compute_shopping_order(self, shopping_list):
-        order_key = self.get_order_key(shopping_list)
+        retrieved_order = self.retrieve_order_from_chunks(shopping_list)
 
-        if order_key in self.shopping_orders:
-            logging.info(f"Using cached shopping order for: {shopping_list}")
-            return self.shopping_orders[order_key]
+        if retrieved_order:
+            logging.info(f"Using cached chunked order for: {shopping_list}")
+            return [(item, self.get_item_position(item)) for item in retrieved_order]
 
         logging.info("\n--- COMPUTING OPTIMAL SHOPPING ROUTE ---\n")
         logging.info(f"Shopping List: {shopping_list}")
 
         basket_pos = [3.5, 16.5]
-        shelf_positions = {}
-
-        for item in shopping_list:
-            position = self.get_item_position(item)
-            if position:
-                shelf_positions[item] = position
+        shelf_positions = {item: self.get_item_position(item) for item in shopping_list if self.get_item_position(item)}
 
         current_position = basket_pos
-        ordered_shelves = []
-        
-        while shelf_positions:
-            path_lengths = {}
+        ordered_items = []
 
-            for item, shelf in shelf_positions.items():
-                path = self.astar(current_position, shelf, objs, self.map_width, self.map_height)
-                if path:
-                    path_lengths[item] = (shelf, len(path))
+        while shelf_positions:
+            path_lengths = {
+                item: (shelf, len(self.astar(current_position, shelf, objs, self.map_width, self.map_height)))
+                for item, shelf in shelf_positions.items() if self.astar(current_position, shelf, objs, self.map_width, self.map_height)
+            }
 
             if not path_lengths:
                 logging.warning("No reachable shelves found! Adjusting shelf positions and current position.")
 
-                # Try modifying shelf positions and also shifting `current_position`
                 adjusted_shelves = {}
                 new_current_position = None
 
@@ -119,20 +141,16 @@ class ShoppingPlanner(Agent):
                     current_position = new_current_position
                 continue
 
-            # Select the best shelf based on shortest path
             best_item = min(path_lengths, key=lambda k: path_lengths[k][1])
             best_shelf = path_lengths[best_item][0]
 
             logging.info(f"Choosing Shelf at {best_shelf} (Path Length: {path_lengths[best_item][1]})")
 
-            # Store as tuple (item_name, shelf_position)
-            ordered_shelves.append((best_item, best_shelf))
+            ordered_items.append(best_item)
 
-            # **Store the nudged position permanently**
             self.item_locations[best_item] = list(best_shelf)
             self.save_item_locations()
 
-            # Shift both `current_position` and `shelf_position`
             new_position = (best_shelf[0], best_shelf[1] + 0.5)
             if not self.astar(current_position, new_position, objs, self.map_width, self.map_height):
                 new_position = (best_shelf[0], best_shelf[1] - 0.5)
@@ -141,9 +159,8 @@ class ShoppingPlanner(Agent):
             shelf_positions[best_item] = new_position
             del shelf_positions[best_item]
 
-        logging.info(f"\nFinal Optimized Shopping Route: {ordered_shelves}\n")
+        logging.info(f"\nFinal Optimized Shopping Order: {ordered_items}\n")
 
-        self.shopping_orders[order_key] = ordered_shelves
-        self.save_shopping_orders()
+        self.store_order_chunks(ordered_items)
 
-        return ordered_shelves
+        return [(item, self.get_item_position(item)) for item in ordered_items]

@@ -67,7 +67,7 @@ class SupermarketTrainer:
         prev_baskets = prev_state['observation']['baskets']
         carts = state['observation']['carts']
         violations = state.get('violations', "")
-        has_basket = len(baskets) > 0 and baskets[0]['owner'] == 0
+        has_basket = len(baskets) > 0
         current_basket_contents = baskets[0]['contents'] if has_basket else []
         prev_basket_contents = prev_baskets[0]['contents'] if len(prev_baskets) > 0 else []
         penalties = self.compute_penalties(action_index, agent_pos, carts, violations)
@@ -78,13 +78,13 @@ class SupermarketTrainer:
         elif subtask == "pick_basket":
             return self.reward_pick_basket(agent_pos, prev_pos, has_basket, holding_food, curr_cart, prev_curr_cart, penalties, action_index)
         elif subtask == "navigate_shelf" and target_item:
-            return self.reward_navigate_shelf(prev_pos, agent_pos, target_item, holding_food, curr_cart, prev_curr_cart,penalties, action_index)
+            return self.reward_navigate_shelf(prev_pos, agent_pos, target_item, holding_food, curr_cart, prev_curr_cart, has_basket, penalties, action_index)
         elif subtask == "pick_place" and target_item:
             return self.reward_pick_place(agent_pos, prev_pos, target_item, current_basket_contents, prev_basket_contents, curr_cart, prev_curr_cart, penalties, action_index)
-        elif subtask == "navigate_cart_return" and target_item:
+        elif subtask == "navigate_cart_return":
             return self.reward_navigate_cart_return(agent_pos, prev_pos, penalties, action_index)
-        elif subtask == "return_cart" and target_item:
-            return self.reward_return_cart(agent_pos, penalties, action_index, curr_cart)
+        elif subtask == "return_cart":
+            return self.reward_return_cart(agent_pos, prev_pos, penalties, curr_cart, action_index)
         return penalties["norm"] + penalties["exit"] + penalties["cart"]
 
     def compute_penalties(self, action_index, agent_pos, carts, violations):
@@ -140,12 +140,12 @@ class SupermarketTrainer:
         bonus = 100 if current_distance < 1.0 else 0
         holding_food_penalty = -10 if holding_food else 0
         direction_bonus = self.compute_direction_bonus(target, agent_pos, action_index)
-        has_cart_penatly = -100 if curr_cart != -1 and prev_curr_cart == -1 else 0
-        reward = (delta_reward + bonus + stagnation_penalty + has_cart_penatly +
+        has_cart_penalty = -100 if curr_cart != -1 and prev_curr_cart == -1 else 0
+        reward = (delta_reward + bonus + stagnation_penalty + has_cart_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
         logging.info(f"Navigate Basket | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Prev: {prev_pos} | Curr: {agent_pos} | Reward: {reward} | "
-                    f"Delta Reward: {delta_reward}, Holding: {holding_food_penalty},  Bonus: {bonus}, Stag: {stagnation_penalty}, Has Cart: {has_cart_penatly}, "
+                    f"Delta Reward: {delta_reward}, Holding: {holding_food_penalty},  Bonus: {bonus}, Stag: {stagnation_penalty}, Has Cart: {has_cart_penalty}, "
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
         return reward
 
@@ -155,27 +155,28 @@ class SupermarketTrainer:
         pick_reward = 100 if has_basket else 0
         holding_food_penalty = -10 if holding_food else 0
         direction_bonus = self.compute_direction_bonus(target, agent_pos, action_index)
-        has_cart_penatly = -100 if curr_cart != -1 and prev_curr_cart == -1 else 0
-        reward = (delta_reward + pick_reward + stagnation_penalty + has_cart_penatly + 
+        has_cart_penalty = -100 if curr_cart != -1 and prev_curr_cart == -1 else 0
+        reward = (delta_reward + pick_reward + stagnation_penalty + has_cart_penalty + 
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
         logging.info(f"Pick Basket | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Prev: {prev_pos} | Curr: {agent_pos} | Reward: {reward} | "
-                    f"Delta: {delta_reward}, Picked: {pick_reward}, Holding: {holding_food_penalty},  Stag: {stagnation_penalty}, Has Cart: {has_cart_penatly}, "
+                    f"Delta: {delta_reward}, Picked: {pick_reward}, Holding: {holding_food_penalty},  Stag: {stagnation_penalty}, Has Cart: {has_cart_penalty}, "
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
         return reward
 
-    def reward_navigate_shelf(self, prev_pos, agent_pos, target_item, holding_food, curr_cart, prev_curr_cart, penalties, action_index):
+    def reward_navigate_shelf(self, prev_pos, agent_pos, target_item, holding_food, curr_cart, prev_curr_cart, has_basket, penalties, action_index):
         target = target_item[1]
         current_distance, delta_reward, stagnation_penalty = self.compute_movement_stats(target, agent_pos, prev_pos)
         bonus = 100 if current_distance < 1.0 else 0
         holding_food_penalty = -10 if holding_food else 0
         direction_bonus = self.compute_direction_bonus(target, agent_pos, action_index)
-        has_cart_penatly = -100 if curr_cart != -1 and prev_curr_cart == -1 else 0
-        reward = (delta_reward + bonus + stagnation_penalty + has_cart_penatly +
+        has_cart_penalty = -100 if curr_cart != -1 and prev_curr_cart == -1 else 0
+        has_basket_pentalty = -100 if not has_basket else 0
+        reward = (delta_reward + bonus + stagnation_penalty + has_cart_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
         logging.info(f"Navigate Shelf | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Prev: {prev_pos} | Curr: {agent_pos} | Item: {target_item[0]} | Reward: {reward} | "
-                    f"Delta: {delta_reward}, Holding: {holding_food_penalty}, Bonus: {bonus}, Stag: {stagnation_penalty}, Has Cart: {has_cart_penatly}, "
+                    f"Delta: {delta_reward}, Holding: {holding_food_penalty}, Bonus: {bonus}, Stag: {stagnation_penalty}, Has Cart: {has_cart_penalty}, Has Basket: {has_basket_pentalty},"
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
         return reward
 
@@ -185,13 +186,13 @@ class SupermarketTrainer:
         placed_bonus = 100 if (target_item[0] in current_basket_contents and target_item[0] not in prev_basket_contents) else 0
         wrong_placed_penalty = -100 if any(item != target_item[0] for item in current_basket_contents) else 0
         direction_bonus = self.compute_direction_bonus(target, agent_pos, action_index)
-        has_cart_penatly = -100 if curr_cart != -1 and prev_curr_cart == -1 else 0
-        reward = (delta_reward + placed_bonus + wrong_placed_penalty + stagnation_penalty + has_cart_penatly +
+        has_cart_penalty = -100 if curr_cart != -1 and prev_curr_cart == -1 else 0
+        reward = (delta_reward + placed_bonus + wrong_placed_penalty + stagnation_penalty + has_cart_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
         logging.info(f"Pick & Place | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Item: {target_item[0]} | Prev: {prev_pos} | Curr: {agent_pos} | Reward: {reward} | "
                     f"Delta: {delta_reward}, Wrong: {wrong_placed_penalty}, Placed: {placed_bonus}, "
-                    f"Stag: {stagnation_penalty}, Has Cart: {has_cart_penatly}, Norm: {penalties['norm']}, Exit: {penalties['exit']}, "
+                    f"Stag: {stagnation_penalty}, Has Cart: {has_cart_penalty}, Norm: {penalties['norm']}, Exit: {penalties['exit']}, "
                     f"Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
         return reward
 
@@ -209,7 +210,7 @@ class SupermarketTrainer:
         
         return reward
 
-    def reward_return_cart(self, agent_pos, prev_pos, penalties, action_index, curr_cart):
+    def reward_return_cart(self, agent_pos, prev_pos, penalties, curr_cart, action_index):
         target = cart_pos_left if self.distance(agent_pos, cart_pos_left) < self.distance(agent_pos, cart_pos_right) else cart_pos_right
         cart_reward = 200 if curr_cart == -1 else -50
         _, delta_reward, stagnation_penalty = self.compute_movement_stats(target, agent_pos, prev_pos)
@@ -255,7 +256,7 @@ class SupermarketTrainer:
         curr_cart = state['observation']['players'][0].get('curr_cart', -1)
         has_cart = curr_cart != -1
         baskets = state['observation']['baskets']
-        has_basket = len(baskets) > 0 and baskets[0]['owner'] == 0
+        has_basket = len(baskets) > 0
         current_basket_contents = baskets[0]['contents'] if has_basket else []
 
         def within_threshold(pos1, pos2, threshold_y, threshold_x):

@@ -80,7 +80,6 @@ class QLAgent:
         qtable.loc[state_key, action] = (1 - self.alpha) * qtable.loc[state_key, action] + \
                                         self.alpha * (reward + self.gamma * max_future_q)
 
-        # Log the updated Q-values for debugging
         logging.debug(f"\n--- Q-Table Updated for {subtask} ---\n{qtable.head(100)}\n")
 
     def choose_action(self, last_action, state, subtask, target_item):

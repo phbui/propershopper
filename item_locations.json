@@ -1,0 +1,86 @@
+{
+    "onion": [
+        14.5,
+        22.0
+    ],
+    "banana": [
+        10.5,
+        6.5
+    ],
+    "swiss cheese": [
+        8.5,
+        13.5
+    ],
+    "lettuce": [
+        14.5,
+        18.0
+    ],
+    "strawberry": [
+        12.5,
+        6.5
+    ],
+    "oranges": [
+        8.5,
+        6.75
+    ],
+    "chocolate milk": [
+        10.5,
+        2.5
+    ],
+    "ham": [
+        14.5,
+        10.0
+    ],
+    "carrot": [
+        12.5,
+        17.5
+    ],
+    "cheese wheel": [
+        10.5,
+        14.5
+    ],
+    "cucumber": [
+        10.5,
+        22.0
+    ],
+    "yellow bell pepper": [
+        12.5,
+        22.0
+    ],
+    "garlic": [
+        6.5,
+        17.5
+    ],
+    "fresh fish": [
+        18.25,
+        9.25
+    ],
+    "brie cheese": [
+        6.5,
+        13.5
+    ],
+    "chicken": [
+        12.5,
+        10.5
+    ],
+    "apples": [
+        6.5,
+        5.5
+    ],
+    "broccoli": [
+        8.5,
+        21.5
+    ],
+    "strawberry milk": [
+        14.5,
+        2.5
+    ],
+    "sausage": [
+        6.5,
+        10.5
+    ],
+    "prepared foods": [
+        18.25,
+        4.75
+    ]
+}
