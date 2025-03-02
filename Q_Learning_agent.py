@@ -6,7 +6,7 @@ import logging
 basket_pos = [3.5, 18.5]
 
 class QLAgent:
-    def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.25, mini_epsilon=0.01, decay=0.999):
+    def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.1, mini_epsilon=0.01, decay=0.999):
         self.action_space = action_space
         self.alpha = alpha  # Learning rate
         self.gamma = gamma  # Discount factor
@@ -40,7 +40,7 @@ class QLAgent:
         else:
             raise ValueError(f"Unknown subtask type: {subtask}")
 
-    def trans(self, state, target_item, granularity=0.15):
+    def trans(self, state, target_item, granularity=1):
         agent_pos = state['observation']['players'][0]['position']
         agent_pos = (round(agent_pos[0] / granularity) * granularity, round(agent_pos[1] / granularity) * granularity)
         agent_pos = [round(agent_pos[0], 2), round(agent_pos[1], 2)]
