@@ -244,7 +244,7 @@ class SupermarketTrainer:
 
         return {"observation": {"players": [{}]}, "gameOver": True}  # Fallback state
 
-    def check_subtask_completion(self, subtask, target_item=None, threshold_enter=1.0, threshold_leave=3.0):
+    def check_subtask_completion(self, subtask, target_item=None, threshold_enter=1.75, threshold_leave=3.0):
         state = self.send_action("NOP")  
         agent_pos = state['observation']['players'][0]['position']
         curr_cart = state['observation']['players'][0].get('curr_cart', -1)

@@ -275,5 +275,93 @@
                 22.0
             ]
         ]
+    ],
+    "carrot,chicken,milk,steak,strawberry,swiss cheese": [
+        [
+            "swiss cheese",
+            [
+                8.5,
+                13.5
+            ]
+        ],
+        [
+            "steak",
+            [
+                8.5,
+                10.0
+            ]
+        ],
+        [
+            "milk",
+            [
+                6.5,
+                2.0
+            ]
+        ],
+        [
+            "strawberry",
+            [
+                12.5,
+                6.0
+            ]
+        ],
+        [
+            "chicken",
+            [
+                12.5,
+                10.0
+            ]
+        ],
+        [
+            "carrot",
+            [
+                12.5,
+                18.0
+            ]
+        ]
+    ],
+    "cheese wheel,chocolate milk,cucumber,milk,red bell pepper,strawberry": [
+        [
+            "red bell pepper",
+            [
+                10.5,
+                17.5
+            ]
+        ],
+        [
+            "cucumber",
+            [
+                10.5,
+                22.0
+            ]
+        ],
+        [
+            "cheese wheel",
+            [
+                10.5,
+                14.0
+            ]
+        ],
+        [
+            "strawberry",
+            [
+                12.5,
+                6.5
+            ]
+        ],
+        [
+            "chocolate milk",
+            [
+                10.5,
+                2.0
+            ]
+        ],
+        [
+            "milk",
+            [
+                6.5,
+                2.0
+            ]
+        ]
     ]
 }
