@@ -172,18 +172,18 @@ class SupermarketTrainer:
         target = target_item[1]
         _, delta_reward, stagnation_penalty = self.compute_movement_stats(target, agent_pos, prev_pos)
         item_picked = 10 if holding_food and holding_food == target_item[0] else 0
-        wrong_item_penalty = -10 if holding_food and holding_food != target_item[0] else 0
-        placed_bonus = 100 if len(current_basket_contents) > len(prev_basket_contents) else 0
+        wrong_item_penalty = -100 if holding_food and holding_food != target_item[0] else 0
+        placed_bonus = 100 if (target_item[0] in current_basket_contents and target_item[0] not in prev_basket_contents) else 0
+        wrong_placed_penalty = -100 if any(item != target_item[0] for item in current_basket_contents) else 0
         direction_bonus = self.compute_direction_bonus(target, agent_pos, action_index)
-        reward = (delta_reward + item_picked + wrong_item_penalty + placed_bonus + stagnation_penalty +
+        reward = (delta_reward + item_picked + wrong_item_penalty + placed_bonus + wrong_placed_penalty + stagnation_penalty +
                 penalties["norm"] + penalties["exit"] + penalties["cart"] + direction_bonus)
         logging.debug(f"Pick & Place | {self.action_commands[action_index]} | Ideal: {self.get_ideal_direction(agent_pos, target)} | "
                     f"Item: {target_item[0]} | Prev: {prev_pos} | Curr: {agent_pos} | Reward: {reward} | "
-                    f"Delta: {delta_reward}, Picked: {item_picked}, Wrong: {wrong_item_penalty}, Placed: {placed_bonus}, "
+                    f"Delta: {delta_reward}, Picked: {item_picked}, Wrong: {wrong_item_penalty + wrong_placed_penalty}, Placed: {placed_bonus}, "
                     f"Stag: {stagnation_penalty}, Norm: {penalties['norm']}, Exit: {penalties['exit']}, "
                     f"Cart: {penalties['cart']}, Dir Bonus: {direction_bonus}")
         return reward
-
 
     def send_action(self, action):
         action = f"0 {action}"  
@@ -279,7 +279,7 @@ class SupermarketTrainer:
 
             reward = self.calculate_reward(action_index, next_state, state, subtask, target_item)
 
-            logging.debug(f"Subtask: {subtask} | Action Executed: {action} | Best?: {best} | Reward: {reward}")
+            logging.info(f"Subtask: {subtask} | Action Executed: {action} | Best?: {best} | Reward: {reward}")
                
             self.agent.learning(self.last_action_index, action_index, reward, state, next_state, subtask, target_item)
             state = next_state  

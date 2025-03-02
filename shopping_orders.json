@@ -3787,5 +3787,79 @@
                 2.0
             ]
         ]
+    ],
+    "chicken,chocolate milk,cucumber,milk,onion,red bell pepper": [
+        [
+            "red bell pepper",
+            [
+                9.5,
+                17.5
+            ]
+        ],
+        [
+            "onion",
+            [
+                13.5,
+                22.0
+            ]
+        ],
+        [
+            "cucumber",
+            [
+                9.5,
+                22.0
+            ]
+        ],
+        [
+            "milk",
+            [
+                5.5,
+                2.0
+            ]
+        ],
+        [
+            "chocolate milk",
+            [
+                9.5,
+                2.0
+            ]
+        ],
+        [
+            "chicken",
+            [
+                11.5,
+                10.0
+            ]
+        ]
+    ],
+    "chicken,raspberry,strawberry,strawberry milk": [
+        [
+            "strawberry",
+            [
+                11.5,
+                5.5
+            ]
+        ],
+        [
+            "raspberry",
+            [
+                13.5,
+                6.5
+            ]
+        ],
+        [
+            "strawberry milk",
+            [
+                13.5,
+                2.0
+            ]
+        ],
+        [
+            "chicken",
+            [
+                11.5,
+                10.0
+            ]
+        ]
     ]
 }
