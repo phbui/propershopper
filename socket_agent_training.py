@@ -76,7 +76,7 @@ class SupermarketTrainer:
 
         # Apply appropriate subtask reward calculation
         if subtask == "navigate_basket":
-            return self.reward_navigate_basket(agent_pos, prev_pos, basket_pos, has_basket, prev_baskets, penalties, "Navigate Basket")
+            return self.reward_navigate_basket(agent_pos, prev_pos, has_basket, prev_baskets, penalties, "Navigate Basket")
 
         if subtask == "pick_basket":
             return self.reward_pick_basket(agent_pos, prev_pos, has_basket, prev_baskets, penalties)
@@ -104,21 +104,20 @@ class SupermarketTrainer:
 
         return {"norm": norm_penalty, "exit": exit_penalty, "cart": cart_penalty}
 
-    def reward_navigate_basket(self, agent_pos, prev_pos, target_pos, success_condition, prev_baskets, penalties, task_name):
-        moving_toward = 5 if self.distance(agent_pos, target_pos) < self.distance(prev_pos, target_pos) else 0
-        close_to_target = 10 if self.distance(agent_pos, target_pos) < 1.0 else 0
+    def reward_navigate_basket(self, agent_pos, prev_pos, success_condition, prev_baskets, penalties, task_name):
+        moving_toward = 15 if self.distance(agent_pos, basket_pos) < self.distance(prev_pos, basket_pos) else -15
+        close_to_target = 10 if self.distance(agent_pos, basket_pos) < 1.0 else 0
         task_success = 10 if success_condition and not (len(prev_baskets) > 0 and prev_baskets[0]['owner'] == 0) else 0
-        movement_penalty = -2 if agent_pos == prev_pos else 0  # Penalize staying still
 
-        reward = moving_toward + close_to_target + task_success + movement_penalty + penalties["norm"] + penalties["exit"] + penalties["cart"]
+        reward = moving_toward + close_to_target + task_success + penalties["norm"] + penalties["exit"] + penalties["cart"]
 
         logging.debug(f"{task_name} | Reward: {reward} | Moving: {moving_toward}, Close: {close_to_target}, "
                     f"Success: {task_success}, Norm: {penalties['norm']}, Exit: {penalties['exit']}, "
-                    f"Cart: {penalties['cart']}, Movement: {movement_penalty}")
+                    f"Cart: {penalties['cart']}")
         return reward
 
     def reward_pick_basket(self, agent_pos, prev_pos, has_basket, prev_baskets, penalties):
-        moving_toward = 5 if self.distance(agent_pos, basket_pos) < self.distance(prev_pos, basket_pos) else 0
+        moving_toward = 15 if self.distance(agent_pos, basket_pos) < self.distance(prev_pos, basket_pos) else -15
         picked_basket = 15 if has_basket and not (len(prev_baskets) > 0 and prev_baskets[0]['owner'] == 0) else 0
 
         reward = moving_toward + picked_basket + penalties["norm"] + penalties["exit"] + penalties["cart"]
@@ -127,30 +126,21 @@ class SupermarketTrainer:
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}")
         return reward
 
-    def reward_navigate_shelf(self, state, prev_pos, agent_pos, target_item, penalties):
-        shelf_pos = next(
-            (shelf['position'] for shelf in state['observation']['shelves'] if shelf['food_name'] == target_item),
-            None
-        )
+    def reward_navigate_shelf(self, prev_pos, agent_pos, target_item, penalties):
+        moving_toward = 5 if self.distance(agent_pos, target_item[0][1]) < self.distance(prev_pos, target_item[0][1]) else -15
+        close_to_shelf = 10 if self.distance(agent_pos, target_item[0][1]) < 0.6 else 0
 
-        if not shelf_pos:
-            return penalties["norm"] + penalties["exit"] + penalties["cart"]
-
-        moving_toward = 5 if self.distance(agent_pos, shelf_pos) < self.distance(prev_pos, shelf_pos) else 0
-        close_to_shelf = 10 if self.distance(agent_pos, shelf_pos) < 0.6 else 0
-        movement_penalty = -2 if agent_pos == prev_pos else 0  # Penalize staying still
-
-        reward = moving_toward + close_to_shelf + movement_penalty + penalties["norm"] + penalties["exit"] + penalties["cart"]
+        reward = moving_toward + close_to_shelf + penalties["norm"] + penalties["exit"] + penalties["cart"]
 
         logging.debug(f"Navigate Shelf | Item: {target_item} | Reward: {reward} | Moving: {moving_toward}, "
                     f"Close: {close_to_shelf}, Norm: {penalties['norm']}, Exit: {penalties['exit']}, "
-                    f"Cart: {penalties['cart']}, Movement: {movement_penalty}")
+                    f"Cart: {penalties['cart']}")
         return reward
 
     def reward_pick_place(self, agent_pos, prev_pos, holding_food, target_item, current_basket_contents, prev_basket_contents, penalties):
-        moving_toward = 5 if self.distance(agent_pos, prev_pos) < self.distance(prev_pos, agent_pos) else 0
-        item_picked = 10 if holding_food and holding_food == target_item else 0
-        wrong_item_penalty = -5 if holding_food and holding_food != target_item else 0
+        moving_toward = 15 if self.distance(agent_pos, target_item[0][1]) < self.distance(prev_pos, target_item[0][1]) else -15
+        item_picked = 10 if holding_food and holding_food == target_item[0][0] else 0
+        wrong_item_penalty = -5 if holding_food and holding_food != target_item[0][0] else 0
         item_placed_in_basket = 15 if len(current_basket_contents) > len(prev_basket_contents) else 0
 
         reward = moving_toward + item_picked + wrong_item_penalty + item_placed_in_basket + penalties["norm"] + penalties["exit"] + penalties["cart"]
