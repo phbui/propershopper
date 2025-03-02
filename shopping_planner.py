@@ -1,11 +1,12 @@
 import logging
 import json
 import os
+from itertools import permutations
 from astar_agent import Agent, objs
 
 SHOPPING_ORDER_FILE = "shopping_orders.json"
 ITEM_LOCATIONS_FILE = "item_locations.json"
-WINDOW_SIZE = 2  
+WINDOW_SIZE = 2
 
 class ShoppingPlanner(Agent):
     def __init__(self, socket_game, env):
@@ -17,13 +18,17 @@ class ShoppingPlanner(Agent):
         if os.path.exists(SHOPPING_ORDER_FILE):
             with open(SHOPPING_ORDER_FILE, "r") as f:
                 self.shopping_orders = json.load(f)
-                self.shopping_orders = {tuple(sorted(k.split(","))): v for k, v in self.shopping_orders.items()}
+                self.shopping_orders = {
+                    tuple(sorted(k.split(","))): v for k, v in self.shopping_orders.items()
+                }
             logging.info("Loaded cached shopping orders.")
         else:
             self.shopping_orders = {}
 
     def save_shopping_orders(self):
-        json_compatible_orders = {",".join(sorted(k)): v for k, v in self.shopping_orders.items()}
+        json_compatible_orders = {
+            ",".join(sorted(k)): v for k, v in self.shopping_orders.items()
+        }
         with open(SHOPPING_ORDER_FILE, "w") as f:
             json.dump(json_compatible_orders, f, indent=4)
         logging.info("Saved updated shopping orders.")
@@ -61,32 +66,49 @@ class ShoppingPlanner(Agent):
         logging.warning(f"Item '{item}' not found in shelves or counters!")
         return None
 
-    def get_order_chunks(self, shopping_list):
-        chunks = []
-        for i in range(len(shopping_list) - WINDOW_SIZE + 1):
-            chunk = tuple(sorted(shopping_list[i:i + WINDOW_SIZE]))  # Store as sorted tuple
-            chunks.append(chunk)
-        return chunks
-
     def retrieve_order_from_chunks(self, shopping_list):
         chunks = self.get_order_chunks(shopping_list)
-        retrieved_order = []
-        used_items = set()
+        possible_paths = []
 
-        for chunk in chunks:
-            sorted_chunk = tuple(sorted(chunk))  # Ensure search is order-agnostic
+        for perm in permutations(chunks):
+            total_cost = 0
+            retrieved_order = []
+            used_items = set()
+            valid_path = True
+
+            for chunk in perm:
+                sorted_chunk = tuple(sorted(chunk))
+                if sorted_chunk in self.shopping_orders:
+                    stored_data = self.shopping_orders[sorted_chunk]
+                    if not isinstance(stored_data, dict) or "order" not in stored_data or "cost" not in stored_data:
+                        continue
+                    total_cost += stored_data["cost"]
+                    for item in stored_data["order"]:
+                        if item not in used_items:
+                            retrieved_order.append(item)
+                            used_items.add(item)
+                else:
+                    valid_path = False
+                    break
+
+            if valid_path:
+                possible_paths.append((total_cost, retrieved_order))
+
+        if not possible_paths:
+            return None
+
+        return min(possible_paths, key=lambda x: x[0])[1]
+
+    def store_order_chunks(self, ordered_items, chunk_costs):
+        for chunk, cost in chunk_costs.items():
+            sorted_chunk = tuple(sorted(chunk))
+
             if sorted_chunk in self.shopping_orders:
-                for item in self.shopping_orders[sorted_chunk]:
-                    if item not in used_items:
-                        retrieved_order.append(item)
-                        used_items.add(item)
+                if cost < self.shopping_orders[sorted_chunk]["cost"]:
+                    self.shopping_orders[sorted_chunk] = {"order": list(chunk), "cost": cost}
+            else:
+                self.shopping_orders[sorted_chunk] = {"order": list(chunk), "cost": cost}
 
-        return retrieved_order if retrieved_order else None
-
-    def store_order_chunks(self, ordered_items):
-        chunks = self.get_order_chunks(ordered_items)
-        for chunk in chunks:
-            self.shopping_orders[chunk] = list(chunk)
         self.save_shopping_orders()
 
     def compute_shopping_order(self, shopping_list):
@@ -104,6 +126,7 @@ class ShoppingPlanner(Agent):
 
         current_position = basket_pos
         ordered_items = []
+        chunk_costs = {}
 
         while shelf_positions:
             path_lengths = {
@@ -125,7 +148,7 @@ class ShoppingPlanner(Agent):
 
                         if path:
                             adjusted_shelves[item] = new_shelf
-                            self.item_locations[item] = list(new_shelf)  # **Store nudge result**
+                            self.item_locations[item] = list(new_shelf)
                             if not new_current_position:
                                 new_current_position = new_position
                             break
@@ -155,12 +178,17 @@ class ShoppingPlanner(Agent):
             if not self.astar(current_position, new_position, objs, self.map_width, self.map_height):
                 new_position = (best_shelf[0], best_shelf[1] - 0.5)
 
+            chunk = (ordered_items[-2], best_item) if len(ordered_items) > 1 else None
+            if chunk:
+                cost = path_lengths[best_item][1]
+                chunk_costs[chunk] = cost
+
             current_position = new_position
             shelf_positions[best_item] = new_position
             del shelf_positions[best_item]
 
         logging.info(f"\nFinal Optimized Shopping Order: {ordered_items}\n")
 
-        self.store_order_chunks(ordered_items)
+        self.store_order_chunks(ordered_items, chunk_costs)
 
         return [(item, self.get_item_position(item)) for item in ordered_items]
