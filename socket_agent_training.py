@@ -33,7 +33,6 @@ class SupermarketTrainer:
         self.agent = QLAgent(action_space=len(self.action_commands))
         self.episodes = episodes
         self.last_action_index = -1
-        self.basket_picked = False
 
     def translate_command(self, state, command):
         direction = state['observation']['players'][0]["direction"]
@@ -214,12 +213,11 @@ class SupermarketTrainer:
 
         return {"observation": {"players": [{}]}, "gameOver": True}  # Fallback state
 
-    def check_subtask_completion(self, subtask, state, target_item=None, threshold_enter=1.0, threshold_leave=3.0):
+    def check_subtask_completion(self, subtask, target_item=None, threshold_enter=1.0, threshold_leave=3.0):
+        state = self.send_action("NOP")  
         agent_pos = state['observation']['players'][0]['position']
         baskets = state['observation']['baskets']
         has_basket = len(baskets) > 0 and baskets[0]['owner'] == 0
-        if not has_basket:
-            self.basket_picked = False
         current_basket_contents = baskets[0]['contents'] if has_basket else []
 
         if subtask == "navigate_basket":
@@ -231,7 +229,6 @@ class SupermarketTrainer:
         elif subtask == "pick_basket":
             if has_basket:
                 logging.info(f"Subtask '{subtask}' completed: Picked up basket.")
-                self.basket_picked = True
                 self.agent.save_qtable()
                 return True
             if self.distance(agent_pos, basket_pos) > threshold_leave:
@@ -239,7 +236,7 @@ class SupermarketTrainer:
                 return "return_to_basket"
 
         elif subtask == "navigate_shelf" and target_item:
-            if not self.basket_picked:
+            if not has_basket:
                 logging.warning("No basket held! Returning to 'navigate_basket'.")
                 return "return_to_basket"
             if self.distance(agent_pos, target_item[1]) <= threshold_enter:
@@ -248,7 +245,7 @@ class SupermarketTrainer:
                 return True
 
         elif subtask == "pick_place" and target_item:
-            if not self.basket_picked:
+            if not has_basket:
                 logging.warning("No basket held! Returning to 'navigate_basket'.")
                 return "return_to_basket"
             if target_item in current_basket_contents:
@@ -267,7 +264,7 @@ class SupermarketTrainer:
         logging.info(f"\n--- Executing Subtask: {subtask} | Target Item: {target_item if target_item else 'N/A'} ---\n")
 
         while not state['gameOver']:
-            completion_status = self.check_subtask_completion(subtask, state, target_item)
+            completion_status = self.check_subtask_completion(subtask, target_item)
 
             if completion_status == "return_to_basket":
                 self.execute_subtask("navigate_basket", None)
