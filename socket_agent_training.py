@@ -176,7 +176,7 @@ class SupermarketTrainer:
 
         return {"observation": {"players": [{}]}, "gameOver": True}  # Fallback state
 
-    def check_subtask_completion(self, subtask, state, target_item=None, threshold_enter=1.0, threshold_leave=2.0):
+    def check_subtask_completion(self, subtask, state, target_item=None, threshold_enter=1.0, threshold_leave=3.0):
         agent_pos = state['observation']['players'][0]['position']
         baskets = state['observation']['baskets']
         has_basket = len(baskets) > 0 and baskets[0]['owner'] == 0
@@ -189,7 +189,7 @@ class SupermarketTrainer:
                 return True
 
         elif subtask == "pick_basket":
-            print(f"distance: {self.distance(agent_pos, basket_pos)}, agent_pos: {agent_pos}, basket_pos: {basket_pos}")
+            logging.info(f"distance: {self.distance(agent_pos, basket_pos)}, agent_pos: {agent_pos}, basket_pos: {basket_pos}")
             if has_basket:
                 logging.info(f"Subtask '{subtask}' completed: Picked up basket.")
                 self.agent.save_qtable()
@@ -242,20 +242,11 @@ class SupermarketTrainer:
             for a in actions:
                 next_state = self.send_action(a)
 
- 
             reward = self.calculate_reward(next_state, state, subtask, target_item)
 
             logging.debug(f"Action Executed: {action} | Reward: {reward}")
                
             self.agent.learning(action_index, reward, state, next_state, subtask, target_item)
-
-            try:
-                qtable_path = f'qtables/{subtask}.json'
-                self.agent.get_qtable(subtask).to_json(qtable_path)
-                logging.debug(f"Q-table Updated: {qtable_path}")
-            except Exception as e:
-                logging.error(f"Failed to Save Q-table for {subtask} | Error: {e}")
-
             state = next_state  
 
         logging.info(f"\n--- Subtask '{subtask}' Completed ---\n")

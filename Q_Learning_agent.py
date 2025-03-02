@@ -6,7 +6,7 @@ import logging
 basket_pos = [3.5, 18.5]
 
 class QLAgent:
-    def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.5, mini_epsilon=0.01, decay=0.999):
+    def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.25, mini_epsilon=0.01, decay=0.999):
         self.action_space = action_space
         self.alpha = alpha  # Learning rate
         self.gamma = gamma  # Discount factor
@@ -45,16 +45,18 @@ class QLAgent:
         agent_pos = (round(agent_pos[0] / granularity) * granularity, round(agent_pos[1] / granularity) * granularity)
         agent_pos = [round(agent_pos[0], 2), round(agent_pos[1], 2)]
 
+        cart = state['observation']['players'][0]['curr_cart']
+
         baskets = state['observation']['baskets']
         has_basket = 1 if (baskets and baskets[0]['owner'] == 0) else 0
 
         shopping_list = state['observation']['players'][0].get('shopping_list', [])
         next_item = shopping_list[0] if shopping_list else "NONE"
 
-        target_pos = basket_pos if (not has_basket or target_item is None) else target_item[0][1]
+        target_pos = basket_pos if (not has_basket or target_item is None) else target_item[1]
         target_pos = [round(target_pos[0], 2), round(target_pos[1], 2)]
 
-        state_key = f"{agent_pos}_{target_pos}_{has_basket}_{next_item}"
+        state_key = f"{agent_pos}_{target_pos}_{has_basket}_{cart}_{next_item}"
         logging.debug(f"State Transformation | Agent: {agent_pos} | Target: {target_pos} | "
                       f"Basket: {has_basket} | Next Item: {next_item}")
         return state_key
@@ -77,7 +79,7 @@ class QLAgent:
                                         self.alpha * (reward + self.gamma * max_future_q)
 
         # Log the updated Q-values for debugging
-        logging.info(f"\n--- Q-Table Updated for {subtask} ---\n{qtable.head(100)}\n")
+        logging.debug(f"\n--- Q-Table Updated for {subtask} ---\n{qtable.head(100)}\n")
 
     def choose_action(self, state, subtask, target_item):
         qtable = self.get_qtable(subtask)
@@ -102,7 +104,8 @@ class QLAgent:
             
             if not qtable.empty:
                 qtable.to_json(filepath, orient="index")  # Explicitly store index as JSON keys
-                logging.info(f"Saved Q-table to {filepath} | Shape: {qtable.shape}")
+                logging.info(f"Saved Q-table to {filepath}")
+                logging.debug(f"\n{qtable.head(100)}\n")
             else:
                 logging.warning(f"Skipping save: Q-table for {subtask} is empty!")
 
@@ -110,8 +113,8 @@ class QLAgent:
         filepath = os.path.join(self.qtable_dir, f"{subtask}.json")
         if os.path.exists(filepath):
             qtable = pd.read_json(filepath, orient="index")  # Ensure correct index loading
-            logging.info(f"Loaded Q-table from {filepath} | Shape: {qtable.shape}")
-            logging.debug(f"Q-Table Loaded:\n{qtable.head(10)}\n")
+            logging.info(f"Loaded Q-table from {filepath}")
+            logging.info(f"\n{qtable.head(100)}\n")
             return qtable
         
         logging.info(f"Creating New Q-table: {subtask}")
