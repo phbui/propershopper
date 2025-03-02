@@ -118,9 +118,10 @@ class SupermarketTrainer:
 
     def reward_pick_basket(self, agent_pos, prev_pos, has_basket, prev_baskets, penalties):
         moving_toward = 15 if self.distance(agent_pos, basket_pos) < self.distance(prev_pos, basket_pos) else -15
+        close_to_target = 10 if self.distance(agent_pos, basket_pos) < 1.0 else 0
         picked_basket = 15 if has_basket and not (len(prev_baskets) > 0 and prev_baskets[0]['owner'] == 0) else 0
 
-        reward = moving_toward + picked_basket + penalties["norm"] + penalties["exit"] + penalties["cart"]
+        reward = moving_toward + close_to_target + picked_basket + penalties["norm"] + penalties["exit"] + penalties["cart"]
 
         logging.debug(f"Pick Basket | Reward: {reward} | Moving: {moving_toward}, Picked Basket: {picked_basket}, "
                     f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, Cart: {penalties['cart']}")
@@ -139,11 +140,12 @@ class SupermarketTrainer:
 
     def reward_pick_place(self, agent_pos, prev_pos, holding_food, target_item, current_basket_contents, prev_basket_contents, penalties):
         moving_toward = 15 if self.distance(agent_pos, target_item[0][1]) < self.distance(prev_pos, target_item[0][1]) else -15
+        close_to_shelf = 10 if self.distance(agent_pos, target_item[0][1]) < 0.6 else 0
         item_picked = 10 if holding_food and holding_food == target_item[0][0] else 0
         wrong_item_penalty = -5 if holding_food and holding_food != target_item[0][0] else 0
         item_placed_in_basket = 15 if len(current_basket_contents) > len(prev_basket_contents) else 0
 
-        reward = moving_toward + item_picked + wrong_item_penalty + item_placed_in_basket + penalties["norm"] + penalties["exit"] + penalties["cart"]
+        reward = moving_toward + close_to_shelf +item_picked + wrong_item_penalty + item_placed_in_basket + penalties["norm"] + penalties["exit"] + penalties["cart"]
 
         logging.debug(f"Pick & Place | Item: {target_item} | Reward: {reward} | Moving: {moving_toward}, Picked: {item_picked}, "
                     f"Wrong Item: {wrong_item_penalty}, Placed: {item_placed_in_basket}, "

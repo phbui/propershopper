@@ -740,5 +740,160 @@
                 10.25
             ]
         ]
+    ],
+    "broccoli,cheese wheel,swiss cheese": [
+        [
+            "swiss cheese",
+            [
+                7.5,
+                13.5
+            ]
+        ],
+        [
+            "cheese wheel",
+            [
+                9.5,
+                14.5
+            ]
+        ],
+        [
+            "broccoli",
+            [
+                7.5,
+                22.0
+            ]
+        ]
+    ],
+    "apples,cheese wheel,chocolate milk,milk,swiss cheese,yellow bell pepper": [
+        [
+            "swiss cheese",
+            [
+                7.5,
+                13.5
+            ]
+        ],
+        [
+            "cheese wheel",
+            [
+                9.5,
+                14.5
+            ]
+        ],
+        [
+            "apples",
+            [
+                5.5,
+                6.0
+            ]
+        ],
+        [
+            "milk",
+            [
+                5.5,
+                2.0
+            ]
+        ],
+        [
+            "chocolate milk",
+            [
+                9.5,
+                2.0
+            ]
+        ],
+        [
+            "yellow bell pepper",
+            [
+                11.5,
+                22.0
+            ]
+        ]
+    ],
+    "avocado,brie cheese,cheese wheel,cucumber,sausage,steak": [
+        [
+            "brie cheese",
+            [
+                5.5,
+                13.5
+            ]
+        ],
+        [
+            "cheese wheel",
+            [
+                9.5,
+                14.5
+            ]
+        ],
+        [
+            "avocado",
+            [
+                5.5,
+                22.0
+            ]
+        ],
+        [
+            "cucumber",
+            [
+                9.5,
+                22.0
+            ]
+        ],
+        [
+            "sausage",
+            [
+                5.5,
+                10.25
+            ]
+        ],
+        [
+            "steak",
+            [
+                7.5,
+                10.25
+            ]
+        ]
+    ],
+    "avocado,brie cheese,milk,prepared foods,raspberry,steak": [
+        [
+            "brie cheese",
+            [
+                5.5,
+                13.5
+            ]
+        ],
+        [
+            "steak",
+            [
+                7.5,
+                10.0
+            ]
+        ],
+        [
+            "milk",
+            [
+                5.5,
+                2.0
+            ]
+        ],
+        [
+            "prepared foods",
+            [
+                18.25,
+                3.75
+            ]
+        ],
+        [
+            "avocado",
+            [
+                5.5,
+                22.0
+            ]
+        ],
+        [
+            "raspberry",
+            [
+                13.5,
+                6.0
+            ]
+        ]
     ]
 }
