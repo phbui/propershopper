@@ -6,7 +6,7 @@ import logging
 basket_pos = [3.5, 18.5]
 
 class QLAgent:
-    def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.75, mini_epsilon=0.01, decay=0.99999):
+    def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.25, mini_epsilon=0.01, decay=0.99999):
         self.action_space = action_space
         self.alpha = alpha  # Learning rate
         self.gamma = gamma  # Discount factor

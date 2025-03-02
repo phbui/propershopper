@@ -33,6 +33,7 @@ class SupermarketTrainer:
         self.agent = QLAgent(action_space=len(self.action_commands))
         self.episodes = episodes
         self.last_action_index = -1
+        self.basket_picked = False
 
     def translate_command(self, state, command):
         direction = state['observation']['players'][0]["direction"]
@@ -217,6 +218,8 @@ class SupermarketTrainer:
         agent_pos = state['observation']['players'][0]['position']
         baskets = state['observation']['baskets']
         has_basket = len(baskets) > 0 and baskets[0]['owner'] == 0
+        if not has_basket:
+            self.basket_picked = False
         current_basket_contents = baskets[0]['contents'] if has_basket else []
 
         if subtask == "navigate_basket":
@@ -228,6 +231,7 @@ class SupermarketTrainer:
         elif subtask == "pick_basket":
             if has_basket:
                 logging.info(f"Subtask '{subtask}' completed: Picked up basket.")
+                self.basket_picked = True
                 self.agent.save_qtable()
                 return True
             if self.distance(agent_pos, basket_pos) > threshold_leave:
@@ -235,7 +239,7 @@ class SupermarketTrainer:
                 return "return_to_basket"
 
         elif subtask == "navigate_shelf" and target_item:
-            if not has_basket:
+            if not self.basket_picked:
                 logging.warning("No basket held! Returning to 'navigate_basket'.")
                 return "return_to_basket"
             if self.distance(agent_pos, target_item[1]) <= threshold_enter:
@@ -244,7 +248,7 @@ class SupermarketTrainer:
                 return True
 
         elif subtask == "pick_place" and target_item:
-            if not has_basket:
+            if not self.basket_picked:
                 logging.warning("No basket held! Returning to 'navigate_basket'.")
                 return "return_to_basket"
             if target_item in current_basket_contents:
@@ -267,6 +271,7 @@ class SupermarketTrainer:
 
             if completion_status == "return_to_basket":
                 self.execute_subtask("navigate_basket", None)
+                self.execute_subtask("pick_basket", None)
                 continue  
 
             if completion_status == "return_to_shelf":
@@ -286,7 +291,7 @@ class SupermarketTrainer:
 
             reward = self.calculate_reward(action_index, next_state, state, subtask, target_item)
 
-            logging.info(f"Subtask: {subtask} | Action Executed: {action} | Best?: {best} | Reward: {reward}")
+            logging.info(f"Subtask: {subtask} | Agent Loc: {state['observation']['players'][0]['position']} | Target Item: {target_item if target_item else 'N/A'} | Action Executed: {action} | Best?: {best} | Reward: {reward}")
                
             self.agent.learning(self.last_action_index, action_index, reward, state, next_state, subtask, target_item)
             state = next_state  
