@@ -19,62 +19,44 @@ class QLAgent:
         self.qtable_dir = "qtables"
         os.makedirs(self.qtable_dir, exist_ok=True)
 
-        # Load or initialize separate Q-tables for different subtasks
-        self.qtable_navigate_basket = self.load_qtable("navigate_basket")
-        self.qtable_pick_basket = self.load_qtable("pick_basket")
-
-        self.qtable_navigate_shelf = self.load_qtable("navigate_shelf")
-        self.qtable_pick_place = self.load_qtable("pick_place")
+        # Store all Q-tables locally in a dictionary
+        self.qtables = {
+            "navigate_basket": self.load_qtable("navigate_basket"),
+            "pick_basket": self.load_qtable("pick_basket"),
+            "navigate_shelf": self.load_qtable("navigate_shelf"),
+            "pick_place": self.load_qtable("pick_place"),
+        }
 
         logging.info("\n--- Q-Learning Agent Initialized ---\n")
-        logging.info(f"Action Space: {self.action_space} | Alpha: {self.alpha} | Gamma: {self.gamma} | Epsilon: {self.epsilon} | Decay: {self.decay}\n")
+        logging.info(f"Action Space: {self.action_space} | Alpha: {self.alpha} | Gamma: {self.gamma} | "
+                     f"Epsilon: {self.epsilon} | Decay: {self.decay}\n")
 
     def reset_epsilon(self):
         self.epsilon = self.og_epsilon
 
     def get_qtable(self, subtask):
-        if subtask == "navigate_basket":
-            return self.qtable_navigate_basket
-        elif subtask == "pick_basket":
-            return self.qtable_pick_basket
-        elif subtask == "navigate_shelf":
-            return self.qtable_navigate_shelf
-        elif subtask == "pick_place":
-            return self.qtable_pick_place
+        if subtask in self.qtables:
+            return self.qtables[subtask]
         else:
             raise ValueError(f"Unknown subtask type: {subtask}")
 
     def trans(self, state, target_item, granularity=0.15):
-        # Get agent's position
         agent_pos = state['observation']['players'][0]['position']
         agent_pos = (round(agent_pos[0] / granularity) * granularity, round(agent_pos[1] / granularity) * granularity)
-        x = round(agent_pos[0] / 0.05) * 0.05 
-        y = round(agent_pos[1] / 0.05) * 0.05  
-        agent_pos = [round(x, 2), round(y, 2)]
+        agent_pos = [round(agent_pos[0], 2), round(agent_pos[1], 2)]
 
-        # Check if agent has a basket
         baskets = state['observation']['baskets']
         has_basket = 1 if (baskets and baskets[0]['owner'] == 0) else 0
 
-        # Get the next item in the shopping list
         shopping_list = state['observation']['players'][0].get('shopping_list', [])
         next_item = shopping_list[0] if shopping_list else "NONE"
 
-        if not has_basket or target_item is None:
-            target_pos = basket_pos  # Go to basket first
-        else:
-            target_pos = target_item[0][1]
+        target_pos = basket_pos if (not has_basket or target_item is None) else target_item[0][1]
+        target_pos = [round(target_pos[0], 2), round(target_pos[1], 2)]
 
-        # Discretize target position
-        target_pos = (round(target_pos[0] / granularity) * granularity, round(target_pos[1] / granularity) * granularity)
-        x = round(target_pos[0] / 0.05) * 0.05 
-        y = round(target_pos[1] / 0.05) * 0.05  
-        target_pos = [round(x, 2), round(y, 2)]
-
-        # Convert state into a string key (hashable)
         state_key = f"{agent_pos}_{target_pos}_{has_basket}_{next_item}"
-
-        logging.debug(f"State Transformation | Agent: {agent_pos} | Target: {target_pos} | Basket: {has_basket} | Next Item: {next_item}")
+        logging.debug(f"State Transformation | Agent: {agent_pos} | Target: {target_pos} | "
+                      f"Basket: {has_basket} | Next Item: {next_item}")
         return state_key
 
     def learning(self, action, reward, state, next_state, subtask, target_item):
@@ -82,49 +64,55 @@ class QLAgent:
         state_key = self.trans(state, target_item)
         next_state_key = self.trans(next_state, target_item)
 
+        action = int(action)
+
         if state_key not in qtable.index:
             qtable.loc[state_key] = np.zeros(self.action_space)
 
         if next_state_key not in qtable.index:
             qtable.loc[next_state_key] = np.zeros(self.action_space)
 
-        # Q-learning update rule
         max_future_q = np.max(qtable.loc[next_state_key])
-        current_q = qtable.loc[state_key, action]
-        qtable.loc[state_key, action] += self.alpha * (reward + self.gamma * max_future_q - current_q)
+        qtable.loc[state_key, action] = (1 - self.alpha) * qtable.loc[state_key, action] + \
+                                        self.alpha * (reward + self.gamma * max_future_q)
 
-        # Save the updated Q-table
-        self.save_qtable(qtable, subtask)
+        # Log the updated Q-values for debugging
+        logging.info(f"\n--- Q-Table Updated for {subtask} ---\n{qtable.head(100)}\n")
 
     def choose_action(self, state, subtask, target_item):
         qtable = self.get_qtable(subtask)
         state_key = self.trans(state, target_item)
 
-        # Ensure the key exists in the Q-table before accessing it
         if state_key not in qtable.index:
-            qtable.loc[state_key] = np.zeros(self.action_space)  # Initialize new row
+            qtable.loc[state_key] = np.zeros(self.action_space)
 
-        # Exploration vs. Exploitation
         if np.random.rand() < self.epsilon:
             action = np.random.choice(self.action_space)  # Explore
         else:
             action = qtable.loc[state_key].idxmax()  # Exploit
 
-        # Decay epsilon
         if self.epsilon > self.mini_epsilon:
             self.epsilon *= self.decay
 
         return action
 
-    def save_qtable(self, qtable, subtask):
-        filepath = os.path.join(self.qtable_dir, f"{subtask}.json")
-        qtable.to_json(filepath)
-        logging.debug(f"Saved Q-table: {filepath}")
+    def save_qtable(self):
+        for subtask, qtable in self.qtables.items():
+            filepath = os.path.join(self.qtable_dir, f"{subtask}.json")
+            
+            if not qtable.empty:
+                qtable.to_json(filepath, orient="index")  # Explicitly store index as JSON keys
+                logging.info(f"Saved Q-table to {filepath} | Shape: {qtable.shape}")
+            else:
+                logging.warning(f"Skipping save: Q-table for {subtask} is empty!")
 
     def load_qtable(self, subtask):
         filepath = os.path.join(self.qtable_dir, f"{subtask}.json")
         if os.path.exists(filepath):
-            logging.info(f"Loading Q-table: {filepath}")
-            return pd.read_json(filepath)
+            qtable = pd.read_json(filepath, orient="index")  # Ensure correct index loading
+            logging.info(f"Loaded Q-table from {filepath} | Shape: {qtable.shape}")
+            logging.debug(f"Q-Table Loaded:\n{qtable.head(10)}\n")
+            return qtable
+        
         logging.info(f"Creating New Q-table: {subtask}")
-        return pd.DataFrame(columns=[i for i in range(self.action_space)])
+        return pd.DataFrame(columns=[i for i in range(self.action_space)], dtype=np.float64).astype(float)

@@ -1,11 +1,9 @@
 import json
 import socket
 import numpy as np
-import pandas as pd
 import logging
 import sys
 
-from env import SupermarketEnv
 from utils import recv_socket_data
 from Q_Learning_agent import QLAgent
 from shopping_planner import ShoppingPlanner
@@ -76,7 +74,7 @@ class SupermarketTrainer:
 
         # Apply appropriate subtask reward calculation
         if subtask == "navigate_basket":
-            return self.reward_navigate_basket(agent_pos, prev_pos, has_basket, prev_baskets, penalties, "Navigate Basket")
+            return self.reward_navigate_basket(agent_pos, prev_pos, penalties, "Navigate Basket")
 
         if subtask == "pick_basket":
             return self.reward_pick_basket(agent_pos, prev_pos, has_basket, prev_baskets, penalties)
@@ -104,22 +102,21 @@ class SupermarketTrainer:
 
         return {"norm": norm_penalty, "exit": exit_penalty, "cart": cart_penalty}
 
-    def reward_navigate_basket(self, agent_pos, prev_pos, success_condition, prev_baskets, penalties, task_name):
-        moving_toward = 15 if self.distance(agent_pos, basket_pos) < self.distance(prev_pos, basket_pos) else -15
-        close_to_target = 10 if self.distance(agent_pos, basket_pos) < 1.0 else 0
-        task_success = 10 if success_condition and not (len(prev_baskets) > 0 and prev_baskets[0]['owner'] == 0) else 0
+    def reward_navigate_basket(self, agent_pos, prev_pos, penalties, task_name):
+        moving_toward = 25 if self.distance(agent_pos, basket_pos) < self.distance(prev_pos, basket_pos) else -15
+        close_to_target = 20 if self.distance(agent_pos, basket_pos) < 1.0 else 0
 
-        reward = moving_toward + close_to_target + task_success + penalties["norm"] + penalties["exit"] + penalties["cart"]
+        reward = moving_toward + close_to_target + penalties["norm"] + penalties["exit"] + penalties["cart"]
 
         logging.debug(f"{task_name} | Reward: {reward} | Moving: {moving_toward}, Close: {close_to_target}, "
-                    f"Success: {task_success}, Norm: {penalties['norm']}, Exit: {penalties['exit']}, "
+                    f"Norm: {penalties['norm']}, Exit: {penalties['exit']}, "
                     f"Cart: {penalties['cart']}")
         return reward
 
     def reward_pick_basket(self, agent_pos, prev_pos, has_basket, prev_baskets, penalties):
-        moving_toward = 15 if self.distance(agent_pos, basket_pos) < self.distance(prev_pos, basket_pos) else -15
-        close_to_target = 10 if self.distance(agent_pos, basket_pos) < 1.0 else 0
-        picked_basket = 15 if has_basket and not (len(prev_baskets) > 0 and prev_baskets[0]['owner'] == 0) else 0
+        moving_toward = 25 if self.distance(agent_pos, basket_pos) < self.distance(prev_pos, basket_pos) else -15
+        close_to_target = 20 if self.distance(agent_pos, basket_pos) < 1.0 else 0
+        picked_basket = 100 if has_basket and not (len(prev_baskets) > 0 and prev_baskets[0]['owner'] == 0) else 0
 
         reward = moving_toward + close_to_target + picked_basket + penalties["norm"] + penalties["exit"] + penalties["cart"]
 
@@ -128,8 +125,8 @@ class SupermarketTrainer:
         return reward
 
     def reward_navigate_shelf(self, prev_pos, agent_pos, target_item, penalties):
-        moving_toward = 5 if self.distance(agent_pos, target_item[0][1]) < self.distance(prev_pos, target_item[0][1]) else -15
-        close_to_shelf = 10 if self.distance(agent_pos, target_item[0][1]) < 0.6 else 0
+        moving_toward = 25 if self.distance(agent_pos, target_item[1]) < self.distance(prev_pos, target_item[1]) else -15
+        close_to_shelf = 20 if self.distance(agent_pos, target_item[1]) < 1.0 else 0
 
         reward = moving_toward + close_to_shelf + penalties["norm"] + penalties["exit"] + penalties["cart"]
 
@@ -139,11 +136,11 @@ class SupermarketTrainer:
         return reward
 
     def reward_pick_place(self, agent_pos, prev_pos, holding_food, target_item, current_basket_contents, prev_basket_contents, penalties):
-        moving_toward = 15 if self.distance(agent_pos, target_item[0][1]) < self.distance(prev_pos, target_item[0][1]) else -15
-        close_to_shelf = 10 if self.distance(agent_pos, target_item[0][1]) < 0.6 else 0
-        item_picked = 10 if holding_food and holding_food == target_item[0][0] else 0
-        wrong_item_penalty = -5 if holding_food and holding_food != target_item[0][0] else 0
-        item_placed_in_basket = 15 if len(current_basket_contents) > len(prev_basket_contents) else 0
+        moving_toward = 25 if self.distance(agent_pos, target_item[1]) < self.distance(prev_pos, target_item[1]) else -15
+        close_to_shelf = 20 if self.distance(agent_pos, target_item[1]) < 1.0 else 0
+        item_picked = 10 if holding_food and holding_food == target_item[0] else 0
+        wrong_item_penalty = -10 if holding_food and holding_food != target_item[0] else 0
+        item_placed_in_basket = 100 if len(current_basket_contents) > len(prev_basket_contents) else 0
 
         reward = moving_toward + close_to_shelf +item_picked + wrong_item_penalty + item_placed_in_basket + penalties["norm"] + penalties["exit"] + penalties["cart"]
 
@@ -179,7 +176,7 @@ class SupermarketTrainer:
 
         return {"observation": {"players": [{}]}, "gameOver": True}  # Fallback state
 
-    def check_subtask_completion(self, subtask, state, target_item=None, threshold_enter=1.0, threshold_leave=4.0):
+    def check_subtask_completion(self, subtask, state, target_item=None, threshold_enter=1.0, threshold_leave=2.0):
         agent_pos = state['observation']['players'][0]['position']
         baskets = state['observation']['baskets']
         has_basket = len(baskets) > 0 and baskets[0]['owner'] == 0
@@ -188,31 +185,33 @@ class SupermarketTrainer:
         if subtask == "navigate_basket":
             if self.distance(agent_pos, basket_pos) <= threshold_enter:
                 logging.info(f"Subtask '{subtask}' completed: Arrived at basket.")
+                self.agent.save_qtable()
                 return True
 
         elif subtask == "pick_basket":
+            print(f"distance: {self.distance(agent_pos, basket_pos)}, agent_pos: {agent_pos}, basket_pos: {basket_pos}")
             if has_basket:
                 logging.info(f"Subtask '{subtask}' completed: Picked up basket.")
+                self.agent.save_qtable()
                 return True
             if self.distance(agent_pos, basket_pos) > threshold_leave:
                 logging.warning(f"Agent moved away from basket! Returning to 'navigate_basket'.")
                 return "return_to_basket"
 
         elif subtask == "navigate_shelf" and target_item:
-            shelf_pos = target_item[0][1]
-            if self.distance(agent_pos, shelf_pos) <= threshold_enter:
+            if self.distance(agent_pos, target_item[1]) <= threshold_enter:
                 logging.info(f"Subtask '{subtask}' completed: Reached shelf for {target_item}.")
+                self.agent.save_qtable()
                 return True
 
         elif subtask == "pick_place" and target_item:
             if target_item in current_basket_contents:
                 logging.info(f"Subtask '{subtask}' completed: {target_item} placed in the basket.")
+                self.agent.save_qtable()
                 return True
-            for shelf in state['observation']['shelves']:
-                shelf_pos = target_item[0][1]
-                if self.distance(agent_pos, shelf_pos) > threshold_leave:
-                    logging.warning(f"Agent moved away from {target_item}'s shelf! Returning to 'navigate_shelf'.")
-                    return "return_to_shelf"
+            if self.distance(agent_pos, target_item[1]) > threshold_leave:
+                logging.warning(f"Agent moved away from {target_item}'s shelf! Returning to 'navigate_shelf'.")
+                return "return_to_shelf"
 
         return False
 
@@ -240,15 +239,13 @@ class SupermarketTrainer:
             actions = self.translate_command(state, action)
             next_state = {}
 
-            for action in actions:
-                next_state = self.send_action(action)
+            for a in actions:
+                next_state = self.send_action(a)
 
-            logging.debug(f"Subtask: {subtask} | Selected Action: {action} | Current Position: {state['observation']['players'][0]['position']}")
  
             reward = self.calculate_reward(next_state, state, subtask, target_item)
 
-            logging.debug(f"Action Executed: {action} | Reward: {reward} | Next Position: {next_state['observation']['players'][0]['position']}")
-            logging.info(f"Reward: {reward}")
+            logging.debug(f"Action Executed: {action} | Reward: {reward}")
                
             self.agent.learning(action_index, reward, state, next_state, subtask, target_item)
 
