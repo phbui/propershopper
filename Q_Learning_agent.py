@@ -6,7 +6,7 @@ import logging
 basket_pos = [3.5, 18.5]
 
 class QLAgent:
-    def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.1, mini_epsilon=0.01, decay=0.999):
+    def __init__(self, action_space, alpha=0.5, gamma=0.8, epsilon=0.75, mini_epsilon=0.01, decay=0.99999):
         self.action_space = action_space
         self.alpha = alpha  # Learning rate
         self.gamma = gamma  # Discount factor
@@ -84,19 +84,22 @@ class QLAgent:
     def choose_action(self, last_action, state, subtask, target_item):
         qtable = self.get_qtable(subtask)
         state_key = self.trans(state, last_action, target_item)
+        best = False
 
         if state_key not in qtable.index:
             qtable.loc[state_key] = np.zeros(self.action_space)
 
         if np.random.rand() < self.epsilon:
             action = np.random.choice(self.action_space)  # Explore
+            best = False
         else:
             action = qtable.loc[state_key].idxmax()  # Exploit
+            best = True
 
         if self.epsilon > self.mini_epsilon:
             self.epsilon *= self.decay
 
-        return action
+        return action, best
 
     def save_qtable(self):
         for subtask, qtable in self.qtables.items():
