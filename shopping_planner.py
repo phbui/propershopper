@@ -129,15 +129,23 @@ class ShoppingPlanner(Agent):
         shelf_positions = {item: self.get_item_position(item) for item in shopping_list if self.get_item_position(item)}
 
         distance_matrix = {}
+        stored_chunk_costs = {tuple(sorted(chunk)): data["cost"] for chunk, data in self.shopping_orders.items() if isinstance(data, dict) and "cost" in data}
+
         for item1, item2 in itertools.combinations(shelf_positions.keys(), 2):
-            pos1, pos2 = shelf_positions[item1], shelf_positions[item2]
-            path = self.astar(pos1, pos2, objs, self.map_width, self.map_height)
-            if path:
-                distance_matrix[(item1, item2)] = len(path)
-                distance_matrix[(item2, item1)] = len(path)
+            sorted_chunk = tuple(sorted((item1, item2)))
+            
+            if sorted_chunk in stored_chunk_costs:
+                distance_matrix[(item1, item2)] = stored_chunk_costs[sorted_chunk]
+                distance_matrix[(item2, item1)] = stored_chunk_costs[sorted_chunk]
             else:
-                distance_matrix[(item1, item2)] = float('inf')
-                distance_matrix[(item2, item1)] = float('inf')
+                pos1, pos2 = shelf_positions[item1], shelf_positions[item2]
+                path = self.astar(pos1, pos2, objs, self.map_width, self.map_height)
+                if path:
+                    distance_matrix[(item1, item2)] = len(path)
+                    distance_matrix[(item2, item1)] = len(path)
+                else:
+                    distance_matrix[(item1, item2)] = float('inf')
+                    distance_matrix[(item2, item1)] = float('inf')
 
         ordered_items = []
         unvisited = set(shelf_positions.keys())

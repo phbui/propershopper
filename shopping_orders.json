@@ -4,7 +4,7 @@
             "brie cheese",
             "red bell pepper"
         ],
-        "cost": 75
+        "cost": 33
     },
     "broccoli,red bell pepper": {
         "order": [
@@ -60,6 +60,20 @@
             "fresh fish",
             "red bell pepper"
         ],
-        "cost": 122
+        "cost": 73
+    },
+    "brie cheese,fresh fish": {
+        "order": [
+            "brie cheese",
+            "fresh fish"
+        ],
+        "cost": 107
+    },
+    "brie cheese,cucumber": {
+        "order": [
+            "brie cheese",
+            "cucumber"
+        ],
+        "cost": 75
     }
 }
