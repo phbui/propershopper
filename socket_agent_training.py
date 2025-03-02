@@ -57,7 +57,7 @@ class SupermarketTrainer:
     def distance(self, a, b):
         return np.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
 
-    def calculate_reward(self, state, prev_state, subtask, target_item=None):
+    def calculate_reward(self, action_index, state, prev_state, subtask, target_item=None):
         agent_pos = state['observation']['players'][0]['position']
         prev_pos = prev_state['observation']['players'][0]['position']
         holding_food = state['observation']['players'][0]['holding_food']
@@ -71,7 +71,7 @@ class SupermarketTrainer:
         current_basket_contents = baskets[0]['contents'] if has_basket else []
 
         # Compute penalties
-        penalties = self.compute_penalties(agent_pos, carts, violations)
+        penalties = self.compute_penalties(action_index, agent_pos, carts, violations)
 
         # Apply appropriate subtask reward calculation
         if subtask == "navigate_basket":
@@ -88,11 +88,20 @@ class SupermarketTrainer:
 
         return penalties["norm"] + penalties["exit"] + penalties["cart"]
 
-    def compute_penalties(self, agent_pos, carts, violations):
+    def compute_penalties(self, action_index, agent_pos, carts, violations):
         exit_distance = self.distance(agent_pos, exit_pos)
         exit_penalty = -10 if exit_distance < 2.0 else -5 if exit_distance < 4.0 else 0
 
         cart_penalty = sum([-10 if self.distance(agent_pos, cart['position']) < 1.5 else 0 for cart in carts])
+
+        opposites = {
+            5: 6,  
+            6: 5,  
+            7: 8,  
+            8: 7   
+        }
+
+        action_penalty = -50 if self.last_action_index in opposites and opposites.get(self.last_action_index) == action_index else 0
 
         norm_penalty = sum([
             -10 if "BlockingShelfNorm" in violations else 0,
@@ -101,7 +110,7 @@ class SupermarketTrainer:
             -10 if "ObjectCollisionNorm" in violations else 0
         ])
 
-        return {"norm": norm_penalty, "exit": exit_penalty, "cart": cart_penalty}
+        return {"norm": norm_penalty, "exit": exit_penalty, "cart": cart_penalty, "action": action_penalty}
     
     def reward_navigate_basket(self, agent_pos, prev_pos, penalties, task_name):
         current_distance = self.distance(agent_pos, basket_pos)
@@ -112,7 +121,7 @@ class SupermarketTrainer:
         # If the agent does not change its distance (i.e. delta is 0), apply a penalty.
         stagnation_penalty = -20 if abs(delta) < 1e-5 else 0
 
-        reward = delta_reward + bonus + stagnation_penalty + penalties["norm"] + penalties["exit"] + penalties["cart"]
+        reward = delta_reward + bonus + stagnation_penalty + penalties["norm"] + penalties["exit"] + penalties["cart"] + penalties["action"]
 
         logging.debug(f"{task_name} | Reward: {reward} | Delta Reward: {delta_reward}, Bonus: {bonus}, "
                     f"Stagnation Penalty: {stagnation_penalty}, Norm: {penalties['norm']}, "
@@ -127,7 +136,7 @@ class SupermarketTrainer:
         pick_reward = 100 if has_basket else 0
         stagnation_penalty = -20 if abs(delta) < 1e-5 else 0
 
-        reward = delta_reward + pick_reward + stagnation_penalty + penalties["norm"] + penalties["exit"] + penalties["cart"]
+        reward = delta_reward + pick_reward + stagnation_penalty + penalties["norm"] + penalties["exit"] + penalties["cart"] + penalties["action"]
 
         logging.debug(f"Pick Basket | Reward: {reward} | Delta Reward: {delta_reward}, "
                     f"Picked: {pick_reward}, Stagnation: {stagnation_penalty}, "
@@ -144,7 +153,7 @@ class SupermarketTrainer:
         bonus = 100 if current_distance < 1.0 else 0
         stagnation_penalty = -20 if abs(delta) < 1e-5 else 0
 
-        reward = delta_reward + bonus + stagnation_penalty + penalties["norm"] + penalties["exit"] + penalties["cart"]
+        reward = delta_reward + bonus + stagnation_penalty + penalties["norm"] + penalties["exit"] + penalties["cart"] + penalties["action"]
 
         logging.debug(f"Navigate Shelf | Item: {target_item[0]} | Reward: {reward} | Delta Reward: {delta_reward}, "
                     f"Bonus: {bonus}, Stagnation: {stagnation_penalty}, Norm: {penalties['norm']}, "
@@ -163,7 +172,7 @@ class SupermarketTrainer:
         stagnation_penalty = -20 if abs(delta) < 1e-5 else 0
 
         reward = delta_reward + item_picked + wrong_item_penalty + placed_bonus + stagnation_penalty + \
-                penalties["norm"] + penalties["exit"] + penalties["cart"]
+                penalties["norm"] + penalties["exit"] + penalties["cart"] + penalties["action"]
 
         logging.debug(f"Pick & Place | Item: {target_item[0]} | Reward: {reward} | Delta Reward: {delta_reward}, "
                     f"Picked: {item_picked}, Wrong: {wrong_item_penalty}, Placed: {placed_bonus}, "
@@ -263,7 +272,7 @@ class SupermarketTrainer:
             for a in actions:
                 next_state = self.send_action(a)
 
-            reward = self.calculate_reward(next_state, state, subtask, target_item)
+            reward = self.calculate_reward(action_index, next_state, state, subtask, target_item)
 
             logging.info(f"Subtask: {subtask} | Action Executed: {action} | Reward: {reward}")
                

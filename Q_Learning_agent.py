@@ -61,7 +61,7 @@ class QLAgent:
                       f"Basket: {has_basket} | Next Item: {next_item}")
         return state_key
 
-    def learning(self, action, last_action, reward, state, next_state, subtask, target_item):
+    def learning(self, last_action, action, reward, state, next_state, subtask, target_item):
         qtable = self.get_qtable(subtask)
         state_key = self.trans(state, last_action, target_item)
         next_state_key = self.trans(next_state, last_action, target_item)
