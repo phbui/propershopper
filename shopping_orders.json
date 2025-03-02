@@ -113,5 +113,167 @@
                 6.5
             ]
         ]
+    ],
+    "fresh fish,lettuce,milk,oranges,red bell pepper,yellow bell pepper": [
+        [
+            "red bell pepper",
+            [
+                10.5,
+                17.5
+            ]
+        ],
+        [
+            "lettuce",
+            [
+                14.5,
+                18.0
+            ]
+        ],
+        [
+            "yellow bell pepper",
+            [
+                12.5,
+                22.0
+            ]
+        ],
+        [
+            "fresh fish",
+            [
+                18.25,
+                9.75
+            ]
+        ],
+        [
+            "oranges",
+            [
+                8.5,
+                6.5
+            ]
+        ],
+        [
+            "milk",
+            [
+                6.5,
+                2.0
+            ]
+        ]
+    ],
+    "apples,brie cheese,ham,lettuce,strawberry": [
+        [
+            "brie cheese",
+            [
+                6.5,
+                13.5
+            ]
+        ],
+        [
+            "apples",
+            [
+                6.5,
+                6.0
+            ]
+        ],
+        [
+            "ham",
+            [
+                14.5,
+                10.0
+            ]
+        ],
+        [
+            "strawberry",
+            [
+                12.5,
+                6.0
+            ]
+        ],
+        [
+            "lettuce",
+            [
+                14.5,
+                18.0
+            ]
+        ]
+    ],
+    "cheese wheel,oranges,prepared foods,raspberry,steak,strawberry": [
+        [
+            "cheese wheel",
+            [
+                10.5,
+                13.5
+            ]
+        ],
+        [
+            "steak",
+            [
+                8.5,
+                10.0
+            ]
+        ],
+        [
+            "oranges",
+            [
+                8.5,
+                6.0
+            ]
+        ],
+        [
+            "prepared foods",
+            [
+                18.25,
+                3.75
+            ]
+        ],
+        [
+            "raspberry",
+            [
+                14.5,
+                5.5
+            ]
+        ],
+        [
+            "strawberry",
+            [
+                12.5,
+                6.5
+            ]
+        ]
+    ],
+    "brie cheese,broccoli,chocolate milk,cucumber,steak": [
+        [
+            "brie cheese",
+            [
+                6.5,
+                13.5
+            ]
+        ],
+        [
+            "steak",
+            [
+                8.5,
+                10.0
+            ]
+        ],
+        [
+            "chocolate milk",
+            [
+                10.5,
+                2.0
+            ]
+        ],
+        [
+            "broccoli",
+            [
+                8.5,
+                22.0
+            ]
+        ],
+        [
+            "cucumber",
+            [
+                10.5,
+                22.0
+            ]
+        ]
     ]
 }

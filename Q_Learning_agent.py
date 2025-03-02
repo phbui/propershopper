@@ -25,6 +25,7 @@ class QLAgent:
             "pick_basket": self.load_qtable("pick_basket"),
             "navigate_shelf": self.load_qtable("navigate_shelf"),
             "pick_place": self.load_qtable("pick_place"),
+            "return_cart": self.load_qtable("return_cart")
         }
 
         logging.info("\n--- Q-Learning Agent Initialized ---\n")

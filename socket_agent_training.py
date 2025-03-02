@@ -248,17 +248,24 @@ class SupermarketTrainer:
         state = self.send_action("NOP")  
         agent_pos = state['observation']['players'][0]['position']
         curr_cart = state['observation']['players'][0].get('curr_cart', -1)
+        has_cart = curr_cart != -1
         baskets = state['observation']['baskets']
         has_basket = len(baskets) > 0 and baskets[0]['owner'] == 0
         current_basket_contents = baskets[0]['contents'] if has_basket else []
 
         if subtask == "navigate_basket":
+            if has_cart:
+                logging.warning("Cart detected! Returning to 'navigate_cart_return'.")
+                return "return_to_cart_return"
             if self.distance(agent_pos, basket_pos) <= threshold_enter:
                 logging.info(f"Subtask '{subtask}' completed: Arrived at basket.")
                 self.agent.save_qtable()
                 return True
 
         elif subtask == "pick_basket":
+            if has_cart:
+                logging.warning("Cart detected! Returning to 'navigate_cart_return'.")
+                return "return_to_cart_return"
             if has_basket:
                 logging.info(f"Subtask '{subtask}' completed: Picked up basket.")
                 self.agent.save_qtable()
@@ -268,6 +275,9 @@ class SupermarketTrainer:
                 return "return_to_basket"
 
         elif subtask == "navigate_shelf" and target_item:
+            if has_cart:
+                logging.warning("Cart detected! Returning to 'navigate_cart_return'.")
+                return "return_to_cart_return"
             if not has_basket:
                 logging.warning("No basket held! Returning to 'navigate_basket'.")
                 return "return_to_basket"
@@ -277,6 +287,9 @@ class SupermarketTrainer:
                 return True
 
         elif subtask == "pick_place" and target_item:
+            if has_cart:
+                logging.warning("Cart detected! Returning to 'navigate_cart_return'.")
+                return "return_to_cart_return"
             if not has_basket:
                 logging.warning("No basket held! Returning to 'navigate_basket'.")
                 return "return_to_basket"
@@ -295,7 +308,7 @@ class SupermarketTrainer:
                 return True
 
         elif subtask == "return_cart":
-            if curr_cart == -1:
+            if not has_cart:
                 logging.info(f"Subtask '{subtask}' completed: Cart returned.")
                 self.agent.save_qtable()
                 return True
