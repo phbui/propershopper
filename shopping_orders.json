@@ -1,0 +1,65 @@
+{
+    "brie cheese,red bell pepper": {
+        "order": [
+            "brie cheese",
+            "red bell pepper"
+        ],
+        "cost": 75
+    },
+    "broccoli,red bell pepper": {
+        "order": [
+            "broccoli",
+            "red bell pepper"
+        ],
+        "cost": 72
+    },
+    "broccoli,cucumber": {
+        "order": [
+            "broccoli",
+            "cucumber"
+        ],
+        "cost": 12
+    },
+    "cucumber,fresh fish": {
+        "order": [
+            "cucumber",
+            "fresh fish"
+        ],
+        "cost": 122
+    },
+    "chocolate milk,fresh fish": {
+        "order": [
+            "chocolate milk",
+            "fresh fish"
+        ],
+        "cost": 78
+    },
+    "cucumber,red bell pepper": {
+        "order": [
+            "cucumber",
+            "red bell pepper"
+        ],
+        "cost": 10
+    },
+    "broccoli,fresh fish": {
+        "order": [
+            "broccoli",
+            "fresh fish"
+        ],
+        "cost": 159
+    },
+    "brie cheese,broccoli": {
+        "order": [
+            "brie cheese",
+            "broccoli"
+        ],
+        "cost": 75
+    },
+    "fresh fish,red bell pepper": {
+        "order": [
+            "fresh fish",
+            "red bell pepper"
+        ],
+        "cost": 122
+    }
+}

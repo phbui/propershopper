@@ -1,6 +1,7 @@
 import logging
 import json
 import os
+import itertools
 from itertools import permutations
 from astar_agent import Agent, objs
 
@@ -66,6 +67,9 @@ class ShoppingPlanner(Agent):
         logging.warning(f"Item '{item}' not found in shelves or counters!")
         return None
 
+    def get_order_chunks(self, shopping_list):
+        return [tuple(sorted(shopping_list[i:i + WINDOW_SIZE])) for i in range(len(shopping_list) - WINDOW_SIZE + 1)]
+
     def retrieve_order_from_chunks(self, shopping_list):
         chunks = self.get_order_chunks(shopping_list)
         possible_paths = []
@@ -124,23 +128,36 @@ class ShoppingPlanner(Agent):
         basket_pos = [3.5, 16.5]
         shelf_positions = {item: self.get_item_position(item) for item in shopping_list if self.get_item_position(item)}
 
-        current_position = basket_pos
+        distance_matrix = {}
+        for item1, item2 in itertools.combinations(shelf_positions.keys(), 2):
+            pos1, pos2 = shelf_positions[item1], shelf_positions[item2]
+            path = self.astar(pos1, pos2, objs, self.map_width, self.map_height)
+            if path:
+                distance_matrix[(item1, item2)] = len(path)
+                distance_matrix[(item2, item1)] = len(path)
+            else:
+                distance_matrix[(item1, item2)] = float('inf')
+                distance_matrix[(item2, item1)] = float('inf')
+
         ordered_items = []
-        chunk_costs = {}
+        unvisited = set(shelf_positions.keys())
+        current_position = basket_pos
 
-        while shelf_positions:
-            path_lengths = {
-                item: (shelf, len(self.astar(current_position, shelf, objs, self.map_width, self.map_height)))
-                for item, shelf in shelf_positions.items() if self.astar(current_position, shelf, objs, self.map_width, self.map_height)
-            }
+        while unvisited:
+            def get_path_length(item):
+                path = self.astar(current_position, shelf_positions[item], objs, self.map_width, self.map_height)
+                return len(path) if path else float('inf')
 
-            if not path_lengths:
-                logging.warning("No reachable shelves found! Adjusting shelf positions and current position.")
+            next_item = min(unvisited, key=get_path_length, default=None)
+
+            if next_item is None or get_path_length(next_item) == float('inf'):
+                logging.warning("No reachable items found! Attempting node nudging.")
 
                 adjusted_shelves = {}
                 new_current_position = None
 
-                for item, shelf in shelf_positions.items():
+                for item in unvisited:
+                    shelf = shelf_positions[item]
                     for offset in [0.25, -0.25, 0.5, -0.5, 1.0, -1.0]:
                         new_shelf = (shelf[0], shelf[1] + offset)
                         new_position = (current_position[0], current_position[1] + offset)
@@ -149,6 +166,7 @@ class ShoppingPlanner(Agent):
                         if path:
                             adjusted_shelves[item] = new_shelf
                             self.item_locations[item] = list(new_shelf)
+                            self.save_item_locations()
                             if not new_current_position:
                                 new_current_position = new_position
                             break
@@ -159,33 +177,20 @@ class ShoppingPlanner(Agent):
                     logging.error("Even with adjustments, no valid shelf positions found. Stopping shopping route.")
                     break
 
-                shelf_positions = adjusted_shelves
+                shelf_positions.update(adjusted_shelves)
                 if new_current_position:
                     current_position = new_current_position
                 continue
 
-            best_item = min(path_lengths, key=lambda k: path_lengths[k][1])
-            best_shelf = path_lengths[best_item][0]
+            ordered_items.append(next_item)
+            current_position = shelf_positions[next_item]
+            unvisited.remove(next_item)
 
-            logging.info(f"Choosing Shelf at {best_shelf} (Path Length: {path_lengths[best_item][1]})")
-
-            ordered_items.append(best_item)
-
-            self.item_locations[best_item] = list(best_shelf)
-            self.save_item_locations()
-
-            new_position = (best_shelf[0], best_shelf[1] + 0.5)
-            if not self.astar(current_position, new_position, objs, self.map_width, self.map_height):
-                new_position = (best_shelf[0], best_shelf[1] - 0.5)
-
-            chunk = (ordered_items[-2], best_item) if len(ordered_items) > 1 else None
-            if chunk:
-                cost = path_lengths[best_item][1]
-                chunk_costs[chunk] = cost
-
-            current_position = new_position
-            shelf_positions[best_item] = new_position
-            del shelf_positions[best_item]
+        chunk_costs = {}
+        for i in range(len(ordered_items) - 1):
+            chunk = tuple(sorted((ordered_items[i], ordered_items[i + 1])))
+            cost = distance_matrix.get((ordered_items[i], ordered_items[i + 1]), float('inf'))
+            chunk_costs[chunk] = cost
 
         logging.info(f"\nFinal Optimized Shopping Order: {ordered_items}\n")
 
