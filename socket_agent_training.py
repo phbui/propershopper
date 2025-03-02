@@ -213,12 +213,13 @@ class SupermarketTrainer:
 
         return {"observation": {"players": [{}]}, "gameOver": True}  # Fallback state
 
-    def check_subtask_completion(self, subtask, target_item=None, threshold_enter=1.0, threshold_leave=3.0):
-        state = self.send_action("NOP")  
+    def check_subtask_completion(self, subtask, state, target_item=None, threshold_enter=1.0, threshold_leave=3.0):
         agent_pos = state['observation']['players'][0]['position']
+        curr_cart = state['observation']['players'][0].get('curr_cart', -1)
         baskets = state['observation']['baskets']
         has_basket = len(baskets) > 0 and baskets[0]['owner'] == 0
         current_basket_contents = baskets[0]['contents'] if has_basket else []
+        logging.info(f"baskets: {baskets}, curr_cart: {curr_cart}")
 
         if subtask == "navigate_basket":
             if self.distance(agent_pos, basket_pos) <= threshold_enter:
@@ -256,23 +257,44 @@ class SupermarketTrainer:
                 logging.warning(f"Agent moved away from {target_item}'s shelf! Returning to 'navigate_shelf'.")
                 return "return_to_shelf"
 
+        elif subtask == "navigate_cart_return":
+            cart_return_pos = cart_pos_left if curr_cart == 0 else cart_pos_right
+            if self.distance(agent_pos, cart_return_pos) <= threshold_enter:
+                logging.info(f"Subtask '{subtask}' completed: Arrived at cart return.")
+                self.agent.save_qtable()
+                return True
+
+        elif subtask == "return_cart":
+            if curr_cart == -1:
+                logging.info(f"Subtask '{subtask}' completed: Cart returned.")
+                self.agent.save_qtable()
+                return True
+            if self.distance(agent_pos, cart_pos_left) > threshold_leave and self.distance(agent_pos, cart_pos_right) > threshold_leave:
+                logging.warning(f"Agent moved away from cart return! Returning to 'navigate_cart_return'.")
+                return "return_to_cart_return"
+
         return False
 
-    def execute_subtask(self, subtask, target_item):
+    def execute_subtask(self, subtask, target_item=None):
         self.agent.reset_epsilon()
-        state = self.send_action("NOP")  # Initial state retrieval
+        state = self.send_action("NOP")
         logging.info(f"\n--- Executing Subtask: {subtask} | Target Item: {target_item if target_item else 'N/A'} ---\n")
 
         while not state['gameOver']:
-            completion_status = self.check_subtask_completion(subtask, target_item)
+            completion_status = self.check_subtask_completion(subtask, state, target_item)
 
             if completion_status == "return_to_basket":
-                self.execute_subtask("navigate_basket", None)
-                self.execute_subtask("pick_basket", None)
+                self.execute_subtask("navigate_basket")
+                self.execute_subtask("pick_basket")
                 continue  
 
             if completion_status == "return_to_shelf":
                 self.execute_subtask("navigate_shelf", target_item)
+                continue  
+
+            if completion_status == "return_to_cart_return":
+                self.execute_subtask("navigate_cart_return")
+                self.execute_subtask("return_cart")
                 continue  
 
             if completion_status:
@@ -289,7 +311,7 @@ class SupermarketTrainer:
             reward = self.calculate_reward(action_index, next_state, state, subtask, target_item)
 
             logging.info(f"Subtask: {subtask} | Agent Loc: {state['observation']['players'][0]['position']} | Target Item: {target_item if target_item else 'N/A'} | Action Executed: {action} | Best?: {best} | Reward: {reward}")
-               
+
             self.agent.learning(self.last_action_index, action_index, reward, state, next_state, subtask, target_item)
             state = next_state  
             self.last_action_index = action_index
